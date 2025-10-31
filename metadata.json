@@ -1,0 +1,5 @@
+{
+  "name": "AI Slide Generator",
+  "description": "An application that generates presentation slides from a script, complete with AI-generated images for each slide.",
+  "requestFramePermissions": []
+}
