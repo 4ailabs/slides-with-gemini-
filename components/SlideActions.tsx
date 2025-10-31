@@ -11,6 +11,7 @@ interface SlideActionsProps {
   onUndo: () => void;
   onRedo: () => void;
   onDuplicate: () => void;
+  onAddSlide: () => void;
 }
 
 /**
@@ -28,6 +29,7 @@ const SlideActions: React.FC<SlideActionsProps> = ({
   onUndo,
   onRedo,
   onDuplicate,
+  onAddSlide,
 }) => {
   if (!isEditMode) {
     return (
@@ -82,6 +84,13 @@ const SlideActions: React.FC<SlideActionsProps> = ({
         title="Duplicar slide actual"
       >
         Duplicar Slide
+      </button>
+      <button
+        onClick={onAddSlide}
+        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors"
+        title="Agregar nueva slide"
+      >
+        + Nueva Slide
       </button>
     </>
   );

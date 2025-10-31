@@ -25,9 +25,15 @@ const Slide: React.FC<SlideProps> = ({
   onAddContent,
   onRemoveContent,
 }) => {
+  // Validación defensiva
+  if (!slide || !slide.title) {
+    return null;
+  }
+
   const currentTheme = themes[theme] || themes['purple-pink'];
   const titleSizeClass = fontSizes.title[fontSettings.titleSize];
   const contentSizeClass = fontSizes.content[fontSettings.contentSize];
+  const layout = slide.layout || 'text-image';
 
   const Title = ({ className = '', maxLines = 2 }: { className?: string; maxLines?: number }) => {
     if (isEditable && onTitleChange) {
@@ -62,10 +68,12 @@ const Slide: React.FC<SlideProps> = ({
   };
   
   const Content = () => {
+    const content = slide.content || [];
+    
     if (isEditable) {
       return (
         <div className="space-y-3">
-          {slide.content.map((point, index) => (
+          {content.map((point, index) => (
             <div key={index} className="flex items-start gap-2">
               <span className="text-gray-400 mt-1">•</span>
               <textarea
@@ -103,7 +111,7 @@ const Slide: React.FC<SlideProps> = ({
     
     return (
       <ul className={`space-y-3 list-disc list-inside ${contentSizeClass}`} style={{ color: currentTheme.textColor, fontFamily: fontSettings.fontFamily }}>
-        {slide.content.map((point, index) => (
+        {content.map((point, index) => (
           <li key={index} className="break-words">{point}</li>
         ))}
       </ul>
@@ -118,7 +126,7 @@ const Slide: React.FC<SlideProps> = ({
     fontFamily: fontSettings.fontFamily,
   };
 
-  switch (slide.layout) {
+  switch (layout) {
     case 'title-only':
       return (
         <div 

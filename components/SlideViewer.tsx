@@ -45,16 +45,18 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
 
 
   useEffect(() => {
-    if (initialSlides.length > 0 && initialSlides !== slides) {
+    if (initialSlides.length > 0 && appContext.slides.length === 0) {
       appContext.setSlides(initialSlides);
     }
-  }, [initialSlides, appContext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSlides.length]);
 
   useEffect(() => {
-    if (onSlidesUpdate) {
+    if (onSlidesUpdate && slides.length > 0) {
       onSlidesUpdate(slides);
     }
-  }, [slides, onSlidesUpdate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides.length]);
 
   useEffect(() => {
     if (showLoadDialog) {
@@ -69,11 +71,32 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   }, [showLoadDialog]);
 
   const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
+    if (slides.length > 0) {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }
   }, [slides.length]);
 
   const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    if (slides.length > 0) {
+      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    }
+  }, [slides.length]);
+
+  // Asegurar que currentSlide esté dentro de los límites válidos
+  useEffect(() => {
+    if (slides.length > 0 && currentSlide >= slides.length) {
+      setCurrentSlide(Math.max(0, slides.length - 1));
+    }
+  }, [slides.length, currentSlide]);
+
+  // Guardar referencia a la última longitud de slides para detectar cuando se agrega una nueva
+  const prevSlidesLengthRef = useRef(slides.length);
+  useEffect(() => {
+    // Si se agregó una nueva slide (la longitud aumentó), navegar a la última
+    if (slides.length > prevSlidesLengthRef.current) {
+      setCurrentSlide(slides.length - 1);
+    }
+    prevSlidesLengthRef.current = slides.length;
   }, [slides.length]);
 
   useEffect(() => {
@@ -118,29 +141,50 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   }, [nextSlide, prevSlide, isEditMode, isPresentationMode, appContext]);
 
   const handleTitleChange = useCallback((newTitle: string) => {
-    appContext.updateSlide(currentSlide, { ...slides[currentSlide], title: newTitle });
+    if (slides[currentSlide]) {
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], title: newTitle });
+    }
   }, [currentSlide, slides, appContext]);
 
   const handleContentChange = useCallback((index: number, newContent: string) => {
-    const updatedContent = [...slides[currentSlide].content];
-    updatedContent[index] = newContent;
-    appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+    if (slides[currentSlide]) {
+      const updatedContent = [...(slides[currentSlide].content || [])];
+      updatedContent[index] = newContent;
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+    }
   }, [currentSlide, slides, appContext]);
 
   const handleAddContent = useCallback(() => {
-    const updatedContent = [...slides[currentSlide].content, 'Nuevo punto'];
-    appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+    if (slides[currentSlide]) {
+      const updatedContent = [...(slides[currentSlide].content || []), 'Nuevo punto'];
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+    }
   }, [currentSlide, slides, appContext]);
 
   const handleRemoveContent = useCallback((index: number) => {
-    const updatedContent = slides[currentSlide].content.filter((_, i) => i !== index);
-    appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+    if (slides[currentSlide]) {
+      const updatedContent = (slides[currentSlide].content || []).filter((_, i) => i !== index);
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+    }
   }, [currentSlide, slides, appContext]);
 
   const handleLayoutChange = useCallback((layout: SlideLayout) => {
-    appContext.updateSlide(currentSlide, { ...slides[currentSlide], layout });
-    setShowEditPanel(false);
+    if (slides[currentSlide]) {
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], layout });
+      setShowEditPanel(false);
+    }
   }, [currentSlide, slides, appContext]);
+
+  const handleAddSlide = useCallback(() => {
+    const newSlide: SlideType = {
+      title: 'Nueva Slide',
+      content: ['Nuevo punto'],
+      layout: 'text-image',
+    };
+    appContext.addSlide(newSlide);
+    // Navegar a la nueva slide después de que se actualice el estado
+    // Usamos un useEffect para manejar esto mejor
+  }, [appContext]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
@@ -469,18 +513,24 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
 
       {/* Área principal */}
       <div className="flex-1 flex flex-col items-center">
-        <div className="w-full mb-4" ref={currentSlideRef}>
-          <Slide
-            slide={slides[currentSlide]}
-            theme={currentTheme}
-            fontSettings={fontSettings}
-            isEditable={isEditMode}
-            onTitleChange={handleTitleChange}
-            onContentChange={handleContentChange}
-            onAddContent={handleAddContent}
-            onRemoveContent={handleRemoveContent}
-          />
-        </div>
+        {slides.length > 0 && slides[currentSlide] ? (
+          <div className="w-full mb-4" ref={currentSlideRef}>
+            <Slide
+              slide={slides[currentSlide]}
+              theme={currentTheme}
+              fontSettings={fontSettings}
+              isEditable={isEditMode}
+              onTitleChange={handleTitleChange}
+              onContentChange={handleContentChange}
+              onAddContent={handleAddContent}
+              onRemoveContent={handleRemoveContent}
+            />
+          </div>
+        ) : (
+          <div className="w-full mb-4 text-center text-gray-400">
+            No hay slides disponibles
+          </div>
+        )}
 
         {downloadMessage && (
           <div className={`w-full mb-4 px-4 py-2 rounded-lg text-center ${
@@ -513,6 +563,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
               onUndo={appContext.undo}
               onRedo={appContext.redo}
               onDuplicate={() => appContext.duplicateSlide(currentSlide)}
+              onAddSlide={handleAddSlide}
             />
 
             <ExportMenu
@@ -545,9 +596,9 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
         </div>
       </div>
 
-      {showEditPanel && (
+      {showEditPanel && slides.length > 0 && slides[currentSlide] && (
         <EditPanel
-          currentLayout={slides[currentSlide].layout}
+          currentLayout={slides[currentSlide]?.layout || 'text-image'}
           currentTheme={currentTheme}
           fontSettings={fontSettings}
           onLayoutChange={handleLayoutChange}
