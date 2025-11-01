@@ -67,7 +67,7 @@ export function validateSlide(slide: unknown): boolean {
   return (
     typeof s.title === 'string' &&
     isContentValid &&
-    ['text-image', 'text-only', 'title-only'].includes(s.layout as string)
+    ['text-image', 'image-text', 'text-only', 'title-only', 'image-background', 'split-vertical'].includes(s.layout as string)
   );
 }
 
