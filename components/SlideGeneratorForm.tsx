@@ -2,25 +2,39 @@
 import React, { useState } from 'react';
 import { Sparkles, Loader2, Link2, FileText } from 'lucide-react';
 
+export type ImageStyle = 'watercolor' | 'realistic' | 'digital-art' | 'minimalist' | '3d-render' | 'sketch' | 'photography' | 'illustration';
+
 interface SlideGeneratorFormProps {
-  onGenerate: (script: string) => void;
-  onGenerateFromUrl?: (url: string) => void;
+  onGenerate: (script: string, imageStyle?: ImageStyle) => void;
+  onGenerateFromUrl?: (url: string, imageStyle?: ImageStyle) => void;
   isLoading: boolean;
 }
 
 type InputMode = 'text' | 'url';
 
+const IMAGE_STYLES: { value: ImageStyle; label: string; description: string }[] = [
+  { value: 'watercolor', label: '🎨 Acuarela', description: 'Pintura suave y artística' },
+  { value: 'realistic', label: '📸 Realista', description: 'Estilo fotográfico real' },
+  { value: 'digital-art', label: '💻 Digital Art', description: 'Arte digital moderno' },
+  { value: 'minimalist', label: '⚪ Minimalista', description: 'Líneas simples y limpias' },
+  { value: '3d-render', label: '🎮 3D Render', description: 'Renderizado 3D profesional' },
+  { value: 'sketch', label: '✏️ Sketch/Lápiz', description: 'Dibujo a lápiz' },
+  { value: 'photography', label: '📷 Fotografía', description: 'Foto profesional' },
+  { value: 'illustration', label: '🎭 Ilustración', description: 'Ilustración tradicional' },
+];
+
 const SlideGeneratorForm: React.FC<SlideGeneratorFormProps> = ({ onGenerate, onGenerateFromUrl, isLoading }) => {
   const [script, setScript] = useState('');
   const [url, setUrl] = useState('');
   const [inputMode, setInputMode] = useState<InputMode>('text');
+  const [imageStyle, setImageStyle] = useState<ImageStyle>('realistic');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputMode === 'text') {
-      onGenerate(script);
+      onGenerate(script, imageStyle);
     } else if (inputMode === 'url' && onGenerateFromUrl) {
-      onGenerateFromUrl(url);
+      onGenerateFromUrl(url, imageStyle);
     }
   };
 
@@ -108,6 +122,32 @@ const SlideGeneratorForm: React.FC<SlideGeneratorFormProps> = ({ onGenerate, onG
             </span>
           </div>
         )}
+        
+        {/* Selector de estilo de imagen */}
+        <div>
+          <label htmlFor="imageStyle" className="block text-lg font-medium text-gray-300 mb-2">
+            Estilo de las Imágenes
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {IMAGE_STYLES.map((style) => (
+              <button
+                key={style.value}
+                type="button"
+                onClick={() => setImageStyle(style.value)}
+                disabled={isLoading}
+                className={`p-3 rounded-lg border-2 transition-all text-left ${
+                  imageStyle === style.value
+                    ? 'border-purple-500 bg-purple-500/20'
+                    : 'border-gray-600 bg-gray-800 hover:border-gray-500'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <div className="font-semibold text-white text-sm mb-1">{style.label}</div>
+                <div className="text-xs text-gray-400">{style.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button
           type="submit"
           disabled={isSubmitDisabled}

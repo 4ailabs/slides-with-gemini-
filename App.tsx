@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Slide, SlideContent } from './types';
 import { generateSlideContent, generateImageForSlide } from './services/geminiService';
 import { extractContentFromUrl } from './services/urlContentService';
-import SlideGeneratorForm from './components/SlideGeneratorForm';
+import SlideGeneratorForm, { ImageStyle } from './components/SlideGeneratorForm';
 import SlideViewer from './components/SlideViewer';
 import CancelableProgress from './components/CancelableProgress';
 import ProposalPreview from './components/ProposalPreview';
@@ -23,9 +23,31 @@ const App: React.FC = () => {
   const [loadDialogTab, setLoadDialogTab] = useState<'saved' | 'history'>('saved');
   const [savedPresentations, setSavedPresentations] = useState<SavedPresentation[]>([]);
   const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([]);
+  const [currentImageStyle, setCurrentImageStyle] = useState<ImageStyle>('realistic');
   const cancelRef = useRef<boolean>(false);
 
-  const handleGenerateProposal = useCallback(async (script: string) => {
+  // Map de estilos a descripciones para prompts
+  const getStylePrompt = (style: ImageStyle): string => {
+    const styleMap: Record<ImageStyle, string> = {
+      'watercolor': 'watercolor painting style, soft colors, artistic brushstrokes',
+      'realistic': 'realistic photography style, high detail, professional lighting',
+      'digital-art': 'digital art style, modern design, vibrant colors',
+      'minimalist': 'minimalist style, clean lines, simple composition',
+      '3d-render': '3D render style, computer graphics, volumetric lighting',
+      'sketch': 'pencil sketch style, hand-drawn illustration, black and white',
+      'photography': 'photography style, natural lighting, real-world subject',
+      'illustration': 'illustration style, traditional art, expressive',
+    };
+    return styleMap[style] || styleMap['realistic'];
+  };
+
+  const buildImagePrompt = (basePrompt: string): string => {
+    const stylePrompt = getStylePrompt(currentImageStyle);
+    return `${basePrompt}, ${stylePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, no text, no words, no letters`;
+  };
+
+  const handleGenerateProposal = useCallback(async (script: string, imageStyle?: ImageStyle) => {
+    if (imageStyle) setCurrentImageStyle(imageStyle);
     if (!script.trim()) {
       setError('Por favor, proporciona un script o tema.');
       return;
@@ -79,7 +101,8 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleGenerateFromUrl = useCallback(async (url: string) => {
+  const handleGenerateFromUrl = useCallback(async (url: string, imageStyle?: ImageStyle) => {
+    if (imageStyle) setCurrentImageStyle(imageStyle);
     if (!url.trim()) {
       setError('Por favor, proporciona una URL válida.');
       return;
@@ -186,7 +209,7 @@ const App: React.FC = () => {
           setProgress({ current: i + 1, total: totalSteps });
           
           try {
-            const detailedImagePrompt = `${content.imagePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, digital illustration, no text, no words, no letters`;
+            const detailedImagePrompt = buildImagePrompt(content.imagePrompt);
             const imageUrl = await generateImageForSlide(detailedImagePrompt);
             newSlide.imageUrl = imageUrl;
           } catch (imageError) {
@@ -349,7 +372,7 @@ const App: React.FC = () => {
                     setProgress({ current: imagesGenerated, total: imageSlidesCount });
                     
                     try {
-                      const detailedImagePrompt = `${slide.imagePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, digital illustration, no text, no words, no letters`;
+                      const detailedImagePrompt = buildImagePrompt(slide.imagePrompt);
                       const imageUrl = await generateImageForSlide(detailedImagePrompt);
                       updatedSlide.imageUrl = imageUrl;
                     } catch (imageError) {
