@@ -50,6 +50,7 @@ export async function processInBatches<T, R>(
 /**
  * Procesa items con concurrencia limitada usando un pool de workers
  * Mejor para tareas más pesadas como generación de canvas
+ * IMPORTANTE: Para exportación de slides, usa concurrencia = 1 para evitar conflictos de DOM
  */
 export async function processWithConcurrencyLimit<T, R>(
   items: T[],
@@ -70,6 +71,10 @@ export async function processWithConcurrencyLimit<T, R>(
     while (currentIndex < items.length) {
       const index = currentIndex++;
       const item = items[index];
+
+      if (item === undefined) {
+        throw new Error(`Item at index ${index} is undefined`);
+      }
 
       try {
         results[index] = await processFn(item, index);
@@ -92,6 +97,33 @@ export async function processWithConcurrencyLimit<T, R>(
 
   // Esperar a que todos los workers terminen
   await Promise.all(workers);
+
+  return results;
+}
+
+/**
+ * Procesa items de forma secuencial (uno a la vez)
+ * Útil cuando el procesamiento comparte recursos y no puede ser paralelo
+ */
+export async function processSequentially<T, R>(
+  items: T[],
+  processFn: (item: T, index: number) => Promise<R>,
+  options: {
+    onProgress?: (completed: number, total: number) => void;
+  } = {}
+): Promise<R[]> {
+  const { onProgress } = options;
+  const results: R[] = [];
+  const total = items.length;
+
+  for (let i = 0; i < items.length; i++) {
+    const result = await processFn(items[i]!, i);
+    results.push(result);
+
+    if (onProgress) {
+      onProgress(i + 1, total);
+    }
+  }
 
   return results;
 }

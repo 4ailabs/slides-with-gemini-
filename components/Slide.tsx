@@ -11,6 +11,7 @@ interface SlideProps {
   theme?: ThemeName;
   fontSettings?: FontSettings;
   isEditable?: boolean;
+  isCapture?: boolean; // Indica si está siendo capturado para exportación
   onTitleChange?: (title: string) => void;
   onContentChange?: (index: number, content: string) => void;
   onIconChange?: (index: number, iconName: string | undefined) => void;
@@ -20,11 +21,12 @@ interface SlideProps {
   onMoveContentDown?: (index: number) => void;
 }
 
-const Slide: React.FC<SlideProps> = ({ 
-  slide, 
+const Slide: React.FC<SlideProps> = ({
+  slide,
   theme = 'purple-pink',
   fontSettings = defaultFontSettings,
   isEditable = false,
+  isCapture = false,
   onTitleChange,
   onContentChange,
   onIconChange,
@@ -59,8 +61,26 @@ const Slide: React.FC<SlideProps> = ({
         />
       );
     }
+
+    // Para captura, usar color sólido en lugar de gradiente (mejor compatibilidad con html2canvas)
+    // Y no usar line-clamp para evitar cortes
+    if (isCapture) {
+      return (
+        <h2
+          className={`font-bold ${className} break-words`}
+          style={{
+            color: currentTheme.titleGradientFrom,
+            fontFamily: fontSettings.fontFamily,
+            lineHeight: '1.2',
+          }}
+        >
+          {slide.title}
+        </h2>
+      );
+    }
+
     return (
-      <h2 
+      <h2
         className={`font-bold text-transparent bg-clip-text bg-gradient-to-r ${currentTheme.titleGradient} ${className} break-words`}
         style={{
           display: '-webkit-box',
@@ -239,11 +259,11 @@ const Slide: React.FC<SlideProps> = ({
 
     case 'text-only':
       return (
-        <div 
+        <div
           className={`${baseContainerClasses} flex-col p-8 lg:p-12 min-h-0`}
           style={containerStyle}
         >
-          <div className="flex-shrink-0 mb-4 lg:mb-6 w-full">
+          <div className="flex-shrink-0 mb-6 lg:mb-8 w-full">
             <Title className={titleSizeClass} maxLines={2} />
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto w-full">
@@ -257,7 +277,7 @@ const Slide: React.FC<SlideProps> = ({
       return (
         <div className={baseContainerClasses} style={containerStyle}>
           <div className="w-1/2 h-full flex flex-col p-8 lg:p-12 min-h-0 overflow-hidden" style={{ color: currentTheme.textColor }}>
-            <div className="flex-shrink-0 mb-4">
+            <div className="flex-shrink-0 mb-6 lg:mb-8">
               <Title className={titleSizeClass} maxLines={2} />
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -266,11 +286,20 @@ const Slide: React.FC<SlideProps> = ({
           </div>
           <div className="w-1/2 h-full bg-black flex-shrink-0">
             {slide.imageUrl ? (
-              <LazyImage
-                src={slide.imageUrl}
-                alt={slide.imagePrompt || 'Slide image'}
-                className="w-full h-full object-cover"
-              />
+              isCapture ? (
+                // Usar img directa para captura (LazyImage no funciona fuera del viewport)
+                <img
+                  src={slide.imageUrl}
+                  alt={slide.imagePrompt || 'Slide image'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <LazyImage
+                  src={slide.imageUrl}
+                  alt={slide.imagePrompt || 'Slide image'}
+                  className="w-full h-full object-cover"
+                />
+              )
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-700">
                   <p className="text-gray-400">Image not generated</p>

@@ -71,11 +71,11 @@ export async function generateSlideContent(script: string): Promise<SlideContent
       async () => {
         return await ai.models.generateContent({
           model: "gemini-2.5-flash",
-          contents: `Based on the following script, generate a series of presentation slides. Break down the key points into individual slides. Script: "${script.substring(0, 10000)}"`,
+          contents: `Basándote en el siguiente guion o tema, genera una serie de diapositivas de presentación EN ESPAÑOL. Divide los puntos clave en diapositivas individuales. Guion: "${script.substring(0, 10000)}"`,
           config: {
             responseMimeType: "application/json",
             responseSchema: slideContentSchema,
-            systemInstruction: "You are an expert presentation creator. Your task is to take a given script or topic and break it down into a series of concise, engaging slides. For each slide, choose an appropriate layout from 'text-image', 'text-only', or 'title-only' to create a varied and professional presentation. A presentation should have a mix of layouts. For 'text-image' slides, you MUST provide a descriptive image prompt. For other layouts, do not provide an image prompt.",
+            systemInstruction: "Eres un experto creador de presentaciones. Tu tarea es tomar un guion o tema dado y dividirlo en una serie de diapositivas concisas y atractivas EN ESPAÑOL. Para cada diapositiva, elige un diseño apropiado entre 'text-image', 'text-only' o 'title-only' para crear una presentación variada y profesional. Una presentación debe tener una mezcla de diseños. Para diapositivas 'text-image', DEBES proporcionar un prompt descriptivo para la imagen EN INGLÉS (ya que los generadores de imágenes funcionan mejor en inglés). Para otros diseños, no proporciones un prompt de imagen. TODO EL CONTENIDO DE LAS DIAPOSITIVAS (títulos y puntos) DEBE ESTAR EN ESPAÑOL.",
           },
         });
       },

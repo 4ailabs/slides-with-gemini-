@@ -6,7 +6,7 @@ import { APP_CONFIG } from '../constants/config';
 
 // Función auxiliar para esperar a que las imágenes se carguen
 function waitForImages(element: HTMLElement): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const images = Array.from(element.querySelectorAll('img'));
     if (images.length === 0) {
       resolve();
@@ -98,22 +98,110 @@ export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElem
   // Esperar un poco más para que todo se renderice (especialmente iconos SVG)
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  return await html2canvas(element, {
-    backgroundColor: null, // Usar el color de fondo del elemento
-    scale: APP_CONFIG.CAPTURE_SCALE,
-    useCORS: true,
-    allowTaint: true, // Permitir imágenes cross-origin
-    logging: false,
-    width,
-    height,
-    windowWidth: width,
-    windowHeight: height,
-    ignoreElements: (el) => {
-      // Ignorar elementos con opacity 0 o display none
-      const style = window.getComputedStyle(el);
-      return style.opacity === '0' || style.display === 'none' || style.visibility === 'hidden';
-    },
-  });
+  // Asegurarnos de que el elemento esté "visible" para html2canvas
+  // html2canvas necesita que el elemento tenga visibility: visible (no hidden)
+  const originalVisibility = element.style.visibility;
+  const originalDisplay = element.style.display;
+  
+  // Asegurar visibilidad aunque esté fuera del viewport
+  if (element.style.visibility === 'hidden') {
+    element.style.visibility = 'visible';
+  }
+  if (element.style.display === 'none') {
+    element.style.display = 'block';
+  }
+  
+  // Esperar un frame para que se apliquen los cambios
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  
+  try {
+    // Esperar otro frame adicional antes de capturar
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    console.log('Starting html2canvas capture for element:', {
+      tagName: element.tagName,
+      width,
+      height,
+      hasDataAttribute: element.hasAttribute('data-slide-capture'),
+      children: element.children.length
+    });
+
+    const canvas = await html2canvas(element, {
+      backgroundColor: null, // Usar el color de fondo del elemento
+      scale: APP_CONFIG.CAPTURE_SCALE,
+      useCORS: true,
+      allowTaint: true, // Permitir imágenes cross-origin
+      logging: true, // Activar logging temporalmente para debug
+      width,
+      height,
+      windowWidth: width,
+      windowHeight: height,
+      foreignObjectRendering: false, // Evitar foreignObject que causa problemas con iframes
+      removeContainer: true, // Permitir que html2canvas limpie el contenedor clonado
+      imageTimeout: 15000, // Timeout para cargar imágenes
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
+      onclone: (clonedDoc) => {
+        try {
+          console.log('html2canvas onclone callback - Preparing cloned document');
+
+          // Asegurar que el documento clonado esté completamente renderizado
+          const wrapper = clonedDoc.querySelector('[data-slide-capture]');
+          if (!wrapper) {
+            console.warn('Warning: Could not find wrapper with data-slide-capture attribute in cloned document');
+            return;
+          }
+
+          if (wrapper instanceof HTMLElement) {
+            console.log('Configuring cloned wrapper element');
+            wrapper.style.position = 'relative';
+            wrapper.style.visibility = 'visible';
+            wrapper.style.display = 'flex';
+            wrapper.style.width = `${width}px`;
+            wrapper.style.height = `${height}px`;
+            wrapper.style.overflow = 'hidden';
+
+            // Asegurar que todos los hijos estén visibles
+            const allElements = wrapper.querySelectorAll('*');
+            console.log(`Processing ${allElements.length} child elements in cloned document`);
+
+            allElements.forEach((el) => {
+              if (el instanceof HTMLElement) {
+                if (el.style.visibility === 'hidden') {
+                  el.style.visibility = 'visible';
+                }
+                if (el.style.display === 'none') {
+                  el.style.display = 'block';
+                }
+              }
+            });
+
+            console.log('Cloned document prepared successfully');
+          }
+        } catch (error) {
+          console.error('Error in onclone callback:', error);
+          throw error;
+        }
+      },
+    });
+
+    console.log('html2canvas capture completed successfully, canvas dimensions:', {
+      width: canvas.width,
+      height: canvas.height
+    });
+
+    return canvas;
+  } finally {
+    // Restaurar visibilidad original si la cambiamos
+    if (originalVisibility) {
+      element.style.visibility = originalVisibility;
+    }
+    if (originalDisplay) {
+      element.style.display = originalDisplay;
+    }
+  }
 }
 
 // Descargar todas las slides como PDF

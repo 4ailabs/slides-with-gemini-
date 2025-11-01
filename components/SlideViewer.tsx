@@ -15,7 +15,7 @@ import { renderSlideForCapture } from '../utils/slideRenderer';
 import { APP_CONFIG } from '../constants/config';
 import { DragEndEvent } from '@dnd-kit/core';
 import { defaultFontSettings } from '../constants/themes';
-import { processWithConcurrencyLimit } from '../utils/parallelProcessing';
+import { processSequentially } from '../utils/parallelProcessing';
 import { RefreshCw, HelpCircle, Sparkles, Save, FolderOpen, Trash2, X } from 'lucide-react';
 import IconPicker from './IconPicker';
 import { ContentPoint } from '../types';
@@ -298,8 +298,8 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
       container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
-      // Procesar slides en paralelo (3 a la vez para no sobrecargar)
-      const slideCanvases = await processWithConcurrencyLimit<SlideType, HTMLCanvasElement>(
+      // Procesar slides de forma secuencial para evitar conflictos de DOM
+      const slideCanvases = await processSequentially<SlideType, HTMLCanvasElement>(
         slides,
         async (slide: SlideType, index: number) => {
           setDownloadMessage(`${APP_CONFIG.MESSAGES.GENERATING_PDF} (${index + 1}/${slides.length})`);
@@ -313,10 +313,20 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
             height
           );
 
-          return await htmlToCanvas(slideDiv);
+          const canvas = await htmlToCanvas(slideDiv);
+
+          // Limpiar el React root después de capturar
+          const root = (slideDiv as any).__slideRoot;
+          if (root && typeof root.unmount === 'function') {
+            root.unmount();
+          }
+
+          // Limpiar el contenedor para el siguiente slide
+          container!.innerHTML = '';
+
+          return canvas;
         },
         {
-          concurrency: 3,
           onProgress: (completed: number, total: number) => {
             setDownloadMessage(`${APP_CONFIG.MESSAGES.GENERATING_PDF} (${completed}/${total})`);
           }
@@ -336,6 +346,10 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
           pdfDoc.addPage();
         }
         const canvas = slideCanvases[i];
+        if (!canvas) {
+          console.warn(`Canvas ${i} is undefined, skipping`);
+          continue;
+        }
         const imgData = canvas.toDataURL('image/png');
         pdfDoc.addImage(imgData, 'PNG', 0, 0, APP_CONFIG.PDF_WIDTH, APP_CONFIG.PDF_HEIGHT);
       }
@@ -472,8 +486,8 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
       container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
-      // Procesar slides en paralelo
-      const slideCanvases = await processWithConcurrencyLimit<SlideType, HTMLCanvasElement>(
+      // Procesar slides de forma secuencial para evitar conflictos de DOM
+      const slideCanvases = await processSequentially<SlideType, HTMLCanvasElement>(
         slides,
         async (slide: SlideType, index: number) => {
           setDownloadMessage(`${APP_CONFIG.MESSAGES.GENERATING_PPTX} (${index + 1}/${slides.length})`);
@@ -487,10 +501,20 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
             height
           );
 
-          return await htmlToCanvas(slideDiv);
+          const canvas = await htmlToCanvas(slideDiv);
+
+          // Limpiar el React root después de capturar
+          const root = (slideDiv as any).__slideRoot;
+          if (root && typeof root.unmount === 'function') {
+            root.unmount();
+          }
+
+          // Limpiar el contenedor para el siguiente slide
+          container!.innerHTML = '';
+
+          return canvas;
         },
         {
-          concurrency: 3,
           onProgress: (completed: number, total: number) => {
             setDownloadMessage(`${APP_CONFIG.MESSAGES.GENERATING_PPTX} (${completed}/${total})`);
           }
