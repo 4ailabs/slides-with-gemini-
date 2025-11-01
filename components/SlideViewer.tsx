@@ -51,12 +51,16 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   const currentSlideRef = useRef<HTMLDivElement>(null);
 
 
+  // Sincronizar slides cuando cambian las initialSlides
   useEffect(() => {
-    if (initialSlides.length > 0 && appContext.slides.length === 0) {
+    const slidesStr = JSON.stringify(initialSlides);
+    const contextStr = JSON.stringify(appContext.slides);
+    
+    if (initialSlides.length > 0 && slidesStr !== contextStr) {
       appContext.setSlides(initialSlides);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSlides.length]);
+  }, [initialSlides.length, initialSlides]);
 
   useEffect(() => {
     if (onSlidesUpdate && slides.length > 0) {

@@ -26,6 +26,7 @@ const App: React.FC = () => {
     
     setIsLoading(true);
     setProposal(null);
+    setSlides([]); // Limpiar slides anteriores
     setError(null);
     cancelRef.current = false;
     setProgress(null);
@@ -79,6 +80,7 @@ const App: React.FC = () => {
 
     setIsLoading(true);
     setProposal(null);
+    setSlides([]); // Limpiar slides anteriores
     setError(null);
     cancelRef.current = false;
     setProgress(null);
