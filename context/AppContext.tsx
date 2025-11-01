@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { Slide } from '../types';
 import { slideSchema } from '../schemas/slideSchema';
+import { saveHistorySnapshot } from '../services/historyService';
 
 /**
  * Contexto de aplicación que gestiona el estado global de las slides
@@ -130,6 +131,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialSlide
       setSlides(history[newIndex]);
     }
   }, [history, historyIndex]);
+
+  // Guardar snapshots en localStorage periódicamente
+  useEffect(() => {
+    if (slides.length > 0) {
+      // Debounce para no guardar demasiado seguido
+      const timeoutId = setTimeout(() => {
+        saveHistorySnapshot(slides);
+      }, 2000); // Guardar después de 2 segundos de inactividad
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [slides]);
 
   return (
     <AppContext.Provider
