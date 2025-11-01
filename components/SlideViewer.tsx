@@ -11,6 +11,7 @@ import SlideList from './SlideList';
 import { useAppContext } from '../context/AppContext';
 import { downloadSlidesAsPDF, downloadSlidesAsImages, downloadCurrentSlideAsImage, exportToPowerPoint, htmlToCanvas } from '../services/downloadService';
 import { savePresentation, loadAllPresentations, SavedPresentation, deletePresentation } from '../services/storageService';
+import { loadHistory, HistorySnapshot, clearHistory, getHistorySize } from '../services/historyService';
 import { renderSlideForCapture } from '../utils/slideRenderer';
 import { APP_CONFIG } from '../constants/config';
 import { DragEndEvent } from '@dnd-kit/core';
@@ -45,6 +46,8 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [presentationName, setPresentationName] = useState('');
   const [savedPresentations, setSavedPresentations] = useState<SavedPresentation[]>([]);
+  const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([]);
+  const [loadDialogTab, setLoadDialogTab] = useState<'saved' | 'history'>('saved');
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [iconPickerIndex, setIconPickerIndex] = useState<number | null>(null);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
@@ -73,6 +76,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
     if (showLoadDialog) {
       try {
         setSavedPresentations(loadAllPresentations());
+        setHistorySnapshots(loadHistory().sort((a, b) => b.timestamp - a.timestamp));
       } catch (error) {
         console.error('Error loading presentations:', error);
         setDownloadMessage('Error al cargar presentaciones guardadas');
@@ -617,6 +621,34 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
     }
   };
 
+  const handleLoadHistorySnapshot = (snapshot: HistorySnapshot) => {
+    try {
+      if (!snapshot || !snapshot.slides || snapshot.slides.length === 0) {
+        throw new Error('El snapshot está vacío o es inválido');
+      }
+      
+      appContext.setSlides(snapshot.slides);
+      setCurrentSlide(0);
+      setShowLoadDialog(false);
+      const timeStr = new Date(snapshot.timestamp).toLocaleTimeString();
+      setDownloadMessage(`Snapshot de ${timeStr} cargado!`);
+      setTimeout(() => setDownloadMessage(''), 2000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      setDownloadMessage(`Error al cargar snapshot: ${message}`);
+      setTimeout(() => setDownloadMessage(''), 4000);
+    }
+  };
+
+  const handleClearHistory = () => {
+    if (confirm('¿Estás seguro de que quieres limpiar todo el historial?')) {
+      clearHistory();
+      setHistorySnapshots([]);
+      setDownloadMessage('Historial limpiado');
+      setTimeout(() => setDownloadMessage(''), 2000);
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-4">
       {isEditMode && showSlideList && (
@@ -861,7 +893,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
             <div className="sticky top-0 bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 <FolderOpen className="w-6 h-6 text-blue-400" />
-                Presentaciones Guardadas
+                Guardadas y Historial
               </h2>
               <button
                 onClick={() => setShowLoadDialog(false)}
@@ -871,41 +903,113 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
                 <X className="w-6 h-6" />
               </button>
             </div>
+
+            {/* Tabs */}
+            <div className="border-b border-gray-700 flex">
+              <button
+                onClick={() => setLoadDialogTab('saved')}
+                className={`px-6 py-3 font-medium transition-colors ${
+                  loadDialogTab === 'saved'
+                    ? 'text-blue-400 border-b-2 border-blue-400'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                Guardadas ({savedPresentations.length})
+              </button>
+              <button
+                onClick={() => setLoadDialogTab('history')}
+                className={`px-6 py-3 font-medium transition-colors ${
+                  loadDialogTab === 'history'
+                    ? 'text-purple-400 border-b-2 border-purple-400'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                Historial ({historySnapshots.length})
+              </button>
+            </div>
+
             <div className="p-6">
-              {savedPresentations.length === 0 ? (
-                <p className="text-gray-400 text-center py-8">No hay presentaciones guardadas</p>
+              {loadDialogTab === 'saved' ? (
+                savedPresentations.length === 0 ? (
+                  <p className="text-gray-400 text-center py-8">No hay presentaciones guardadas</p>
+                ) : (
+                  <div className="space-y-3">
+                    {savedPresentations.map((pres) => (
+                      <div
+                        key={pres.id}
+                        className="bg-gray-700 rounded-lg p-4 flex justify-between items-center"
+                      >
+                        <div>
+                          <h3 className="text-white font-semibold">{pres.name}</h3>
+                          <p className="text-gray-400 text-sm">
+                            {pres.slides.length} slides • {new Date(pres.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleLoadPresentation(pres)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
+                          >
+                            <FolderOpen className="w-4 h-4" />
+                            Cargar
+                          </button>
+                          <button
+                            onClick={() => handleDeletePresentation(pres.id)}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
-                <div className="space-y-3">
-                  {savedPresentations.map((pres) => (
-                    <div
-                      key={pres.id}
-                      className="bg-gray-700 rounded-lg p-4 flex justify-between items-center"
-                    >
-                      <div>
-                        <h3 className="text-white font-semibold">{pres.name}</h3>
-                        <p className="text-gray-400 text-sm">
-                          {pres.slides.length} slides • {new Date(pres.updatedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleLoadPresentation(pres)}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
+                <>
+                  {historySnapshots.length === 0 ? (
+                    <p className="text-gray-400 text-center py-8">No hay historial guardado</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {historySnapshots.map((snapshot) => (
+                        <div
+                          key={snapshot.id}
+                          className="bg-gray-700 rounded-lg p-4 flex justify-between items-center hover:bg-gray-600 transition-colors"
                         >
-                          <FolderOpen className="w-4 h-4" />
-                          Cargar
-                        </button>
-                        <button
-                          onClick={() => handleDeletePresentation(pres.id)}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Eliminar
-                        </button>
-                      </div>
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold text-sm">
+                              {new Date(snapshot.timestamp).toLocaleString()}
+                            </h3>
+                            <p className="text-gray-400 text-xs mt-1">
+                              {snapshot.slides.length} slides • {snapshot.preview || 'Sin preview'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleLoadHistorySnapshot(snapshot)}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2"
+                          >
+                            <FolderOpen className="w-4 h-4" />
+                            Cargar
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                  {historySnapshots.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-700">
+                      <button
+                        onClick={handleClearHistory}
+                        className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center justify-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Limpiar Todo el Historial
+                      </button>
+                      <p className="text-xs text-gray-500 text-center mt-2">
+                        Espacio usado: {(getHistorySize() / 1024).toFixed(2)} KB
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
