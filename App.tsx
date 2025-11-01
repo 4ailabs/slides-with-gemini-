@@ -303,6 +303,10 @@ const App: React.FC = () => {
                   }
 
                   const slide = slidesToUpdate[i];
+                  if (!slide) {
+                    continue;
+                  }
+                  
                   const updatedSlide: Slide = { ...slide };
 
                   if (slide.layout === 'text-image' && slide.imagePrompt && !slide.imageUrl) {

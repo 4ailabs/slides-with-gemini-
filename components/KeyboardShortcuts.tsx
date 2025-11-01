@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Keyboard, X } from 'lucide-react';
 
 interface KeyboardShortcutsProps {
   onClose: () => void;

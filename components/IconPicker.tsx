@@ -83,7 +83,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onSelect, onClose, currentTheme
       return popularIcons.map(pop => {
         const category = iconCategories.find(c => c.name === pop.category);
         const IconComponent = category ? (category.icons as any)[pop.name] : null;
-        return IconComponent ? {
+        return IconComponent && category ? {
           name: pop.name,
           category: pop.category,
           prefix: category.prefix,
