@@ -37,7 +37,41 @@ export function saveHistorySnapshot(slides: Slide[]): void {
     
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   } catch (error) {
-    console.error('Error saving history snapshot:', error);
+    // Si es error de cuota, intentar limpiar espacio
+    if (error instanceof Error && error.name === 'QuotaExceededError') {
+      console.warn('Storage quota exceeded, attempting to clean space...');
+      try {
+        // Reducir el historial a solo 10 items más recientes
+        const history = loadHistory();
+        const recentHistory = history.slice(-10);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(recentHistory));
+        
+        // Intentar guardar de nuevo con el historial reducido
+        const snapshot: HistorySnapshot = {
+          id: `hist_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+          slides: JSON.parse(JSON.stringify(slides)),
+          timestamp: Date.now(),
+          preview: generatePreview(slides),
+        };
+        const newHistory = [...recentHistory, snapshot];
+        if (newHistory.length > MAX_HISTORY_ITEMS) {
+          newHistory.shift();
+        }
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+        console.info('Storage cleaned and history saved successfully');
+      } catch (retryError) {
+        // Si todavía falla, limpiar todo el historial
+        console.warn('Cleaning failed, clearing all history');
+        try {
+          localStorage.removeItem(HISTORY_KEY);
+          console.info('All history cleared to prevent further quota errors');
+        } catch (clearError) {
+          console.error('Failed to clear history:', clearError);
+        }
+      }
+    } else {
+      console.error('Error saving history snapshot:', error);
+    }
     // No lanzar error, solo loguear para no interrumpir el flujo
   }
 }
