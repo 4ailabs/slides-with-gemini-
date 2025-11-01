@@ -13,14 +13,14 @@ interface SlideGeneratorFormProps {
 type InputMode = 'text' | 'url';
 
 const IMAGE_STYLES: { value: ImageStyle; label: string; description: string }[] = [
-  { value: 'watercolor', label: '🎨 Acuarela', description: 'Pintura suave y artística' },
-  { value: 'realistic', label: '📸 Realista', description: 'Estilo fotográfico real' },
-  { value: 'digital-art', label: '💻 Digital Art', description: 'Arte digital moderno' },
-  { value: 'minimalist', label: '⚪ Minimalista', description: 'Líneas simples y limpias' },
-  { value: '3d-render', label: '🎮 3D Render', description: 'Renderizado 3D profesional' },
-  { value: 'sketch', label: '✏️ Sketch/Lápiz', description: 'Dibujo a lápiz' },
-  { value: 'photography', label: '📷 Fotografía', description: 'Foto profesional' },
-  { value: 'illustration', label: '🎭 Ilustración', description: 'Ilustración tradicional' },
+  { value: 'watercolor', label: 'Acuarela', description: 'Pintura suave y artística' },
+  { value: 'realistic', label: 'Realista', description: 'Estilo fotográfico real' },
+  { value: 'digital-art', label: 'Digital Art', description: 'Arte digital moderno' },
+  { value: 'minimalist', label: 'Minimalista', description: 'Líneas simples y limpias' },
+  { value: '3d-render', label: '3D Render', description: 'Renderizado 3D profesional' },
+  { value: 'sketch', label: 'Sketch/Lápiz', description: 'Dibujo a lápiz' },
+  { value: 'photography', label: 'Fotografía', description: 'Foto profesional' },
+  { value: 'illustration', label: 'Ilustración', description: 'Ilustración tradicional' },
 ];
 
 const SlideGeneratorForm: React.FC<SlideGeneratorFormProps> = ({ onGenerate, onGenerateFromUrl, isLoading }) => {
