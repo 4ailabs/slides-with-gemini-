@@ -401,6 +401,7 @@ const App: React.FC = () => {
             onReset={handleReset} 
             onSlidesUpdate={setSlides}
             onThemeChange={setCurrentTheme}
+            initialTheme={currentTheme}
             onGenerateImages={async (slidesToUpdate) => {
               setIsLoading(true);
               setLoadingMessage('Generando imágenes...');

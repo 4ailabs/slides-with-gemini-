@@ -33,10 +33,11 @@ interface SlideViewerProps {
   onSlidesUpdate?: (slides: SlideType[]) => void;
   onGenerateImages?: (slides: SlideType[]) => Promise<void>;
   onThemeChange?: (theme: ThemeName) => void;
+  initialTheme?: ThemeName;
 }
 
 
-const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onReset, onSlidesUpdate, onGenerateImages, onThemeChange }) => {
+const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onReset, onSlidesUpdate, onGenerateImages, onThemeChange, initialTheme }) => {
   const appContext = useAppContext();
   const slides = appContext.slides.length > 0 ? appContext.slides : initialSlides;
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -46,7 +47,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   const [isEditMode, setIsEditMode] = useState(false);
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [showSlideList, setShowSlideList] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<ThemeName>('purple-pink');
+  const [currentTheme, setCurrentTheme] = useState<ThemeName>(initialTheme || 'purple-pink');
   const [fontSettings, setFontSettings] = useState<FontSettings>(defaultFontSettings);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -71,6 +72,14 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSlides.length, initialSlides]);
+
+  // Sincronizar theme cuando cambia initialTheme
+  useEffect(() => {
+    if (initialTheme && initialTheme !== currentTheme) {
+      setCurrentTheme(initialTheme);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTheme]);
 
   useEffect(() => {
     if (onSlidesUpdate && slides.length > 0) {
