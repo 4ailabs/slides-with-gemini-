@@ -111,8 +111,9 @@ const App: React.FC = () => {
     return `${combinedPrompts}, professional presentation slide image, clean background, 16:9 aspect ratio, no text, no words, no letters`;
   };
 
-  const handleGenerateProposal = useCallback(async (script: string, imageStyle?: ImageStyle) => {
+  const handleGenerateProposal = useCallback(async (script: string, imageStyle?: ImageStyle, theme?: ThemeName) => {
     if (imageStyle) setCurrentImageStyle(imageStyle);
+    if (theme) setCurrentTheme(theme);
     if (!script.trim()) {
       setError('Por favor, proporciona un script o tema.');
       return;
@@ -166,8 +167,9 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleGenerateFromUrl = useCallback(async (url: string, imageStyle?: ImageStyle) => {
+  const handleGenerateFromUrl = useCallback(async (url: string, imageStyle?: ImageStyle, theme?: ThemeName) => {
     if (imageStyle) setCurrentImageStyle(imageStyle);
+    if (theme) setCurrentTheme(theme);
     if (!url.trim()) {
       setError('Por favor, proporciona una URL válida.');
       return;

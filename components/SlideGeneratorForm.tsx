@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
 import { Sparkles, Loader2, Link2, FileText } from 'lucide-react';
+import { ThemeName } from '../types';
 
 export type ImageStyle = 'watercolor' | 'realistic' | 'digital-art' | 'minimalist' | '3d-render' | 'sketch' | 'photography' | 'illustration';
 
 interface SlideGeneratorFormProps {
-  onGenerate: (script: string, imageStyle?: ImageStyle) => void;
-  onGenerateFromUrl?: (url: string, imageStyle?: ImageStyle) => void;
+  onGenerate: (script: string, imageStyle?: ImageStyle, theme?: ThemeName) => void;
+  onGenerateFromUrl?: (url: string, imageStyle?: ImageStyle, theme?: ThemeName) => void;
   isLoading: boolean;
 }
 
@@ -23,18 +24,31 @@ const IMAGE_STYLES: { value: ImageStyle; label: string; description: string }[] 
   { value: 'illustration', label: 'Ilustración', description: 'Ilustración tradicional' },
 ];
 
+const POPULAR_THEMES: { value: ThemeName; label: string }[] = [
+  { value: 'purple-pink', label: 'Morado/Rosa' },
+  { value: 'blue-cyan', label: 'Azul/Cyan' },
+  { value: 'green-emerald', label: 'Verde/Esmeralda' },
+  { value: 'ocean-blue', label: 'Azul Océano' },
+  { value: 'sunset-orange', label: 'Naranja/Atardecer' },
+  { value: 'royal-purple', label: 'Morado Real' },
+  { value: 'modern-tech', label: 'Tech Moderno' },
+  { value: 'elegant-rose', label: 'Rosa Elegante' },
+  { value: 'corporate-blue', label: 'Azul Corporativo' },
+];
+
 const SlideGeneratorForm: React.FC<SlideGeneratorFormProps> = ({ onGenerate, onGenerateFromUrl, isLoading }) => {
   const [script, setScript] = useState('');
   const [url, setUrl] = useState('');
   const [inputMode, setInputMode] = useState<InputMode>('text');
   const [imageStyle, setImageStyle] = useState<ImageStyle>('realistic');
+  const [selectedTheme, setSelectedTheme] = useState<ThemeName>('purple-pink');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputMode === 'text') {
-      onGenerate(script, imageStyle);
+      onGenerate(script, imageStyle, selectedTheme);
     } else if (inputMode === 'url' && onGenerateFromUrl) {
-      onGenerateFromUrl(url, imageStyle);
+      onGenerateFromUrl(url, imageStyle, selectedTheme);
     }
   };
 
@@ -123,6 +137,30 @@ const SlideGeneratorForm: React.FC<SlideGeneratorFormProps> = ({ onGenerate, onG
           </div>
         )}
         
+        {/* Selector de tema de colores */}
+        <div>
+          <label htmlFor="slideTheme" className="block text-lg font-medium text-gray-300 mb-2">
+            Tema de la Presentación
+          </label>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            {POPULAR_THEMES.map((theme) => (
+              <button
+                key={theme.value}
+                type="button"
+                onClick={() => setSelectedTheme(theme.value)}
+                disabled={isLoading}
+                className={`p-3 rounded-lg border-2 transition-all text-center ${
+                  selectedTheme === theme.value
+                    ? 'border-purple-500 bg-purple-500/20'
+                    : 'border-gray-600 bg-gray-800 hover:border-gray-500'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <div className="font-semibold text-white text-sm">{theme.label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Selector de estilo de imagen */}
         <div>
           <label htmlFor="imageStyle" className="block text-lg font-medium text-gray-300 mb-2">
