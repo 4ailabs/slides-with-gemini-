@@ -305,7 +305,7 @@ const App: React.FC = () => {
       setLoadingMessage('');
       setProgress(null);
     }
-  }, []);
+  }, [currentTheme]);
 
   const handleRejectProposal = useCallback(() => {
     setProposal(null);
