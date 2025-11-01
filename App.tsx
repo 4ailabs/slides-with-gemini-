@@ -179,7 +179,7 @@ const App: React.FC = () => {
           setProgress({ current: i + 1, total: totalSteps });
           
           try {
-            const detailedImagePrompt = `${content.imagePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, digital illustration`;
+            const detailedImagePrompt = `${content.imagePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, digital illustration, no text, no words, no letters`;
             const imageUrl = await generateImageForSlide(detailedImagePrompt);
             newSlide.imageUrl = imageUrl;
           } catch (imageError) {
@@ -317,7 +317,7 @@ const App: React.FC = () => {
                     setProgress({ current: imagesGenerated, total: imageSlidesCount });
                     
                     try {
-                      const detailedImagePrompt = `${slide.imagePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, digital illustration`;
+                      const detailedImagePrompt = `${slide.imagePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, digital illustration, no text, no words, no letters`;
                       const imageUrl = await generateImageForSlide(detailedImagePrompt);
                       updatedSlide.imageUrl = imageUrl;
                     } catch (imageError) {
