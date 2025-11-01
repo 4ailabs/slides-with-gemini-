@@ -30,12 +30,12 @@ const slideContentSchema = {
       },
       layout: {
         type: Type.STRING,
-        description: "The layout for the slide. Choose from 'text-image', 'text-only', or 'title-only'.",
-        enum: ['text-image', 'text-only', 'title-only'],
+        description: "The layout for the slide. Choose from: 'text-image' (text left, image right), 'image-text' (image left, text right), 'split-vertical' (image top, text bottom), 'image-background' (image as background with text overlay), 'text-only', or 'title-only'.",
+        enum: ['text-image', 'image-text', 'split-vertical', 'image-background', 'text-only', 'title-only'],
       },
       imagePrompt: {
         type: Type.STRING,
-        description: 'A descriptive prompt for an AI image generator to create a relevant image. ONLY provide this for the `text-image` layout.',
+        description: 'A descriptive prompt for an AI image generator to create a relevant image. Provide this for layouts with images: text-image, image-text, split-vertical, or image-background. Write the prompt in ENGLISH for better image generation.',
       },
     },
     required: ['title', 'content', 'layout'],
@@ -75,7 +75,7 @@ export async function generateSlideContent(script: string): Promise<SlideContent
           config: {
             responseMimeType: "application/json",
             responseSchema: slideContentSchema,
-            systemInstruction: "Eres un experto creador de presentaciones. Tu tarea es tomar un guion o tema dado y dividirlo en una serie de diapositivas concisas y atractivas EN ESPAÑOL. Para cada diapositiva, elige un diseño apropiado entre 'text-image', 'text-only' o 'title-only' para crear una presentación variada y profesional. Una presentación debe tener una mezcla de diseños. Para diapositivas 'text-image', DEBES proporcionar un prompt descriptivo para la imagen EN INGLÉS (ya que los generadores de imágenes funcionan mejor en inglés). Para otros diseños, no proporciones un prompt de imagen. TODO EL CONTENIDO DE LAS DIAPOSITIVAS (títulos y puntos) DEBE ESTAR EN ESPAÑOL.",
+            systemInstruction: "Eres un experto creador de presentaciones. Tu tarea es tomar un guion o tema dado y dividirlo en una serie de diapositivas concisas y atractivas EN ESPAÑOL. Para cada diapositiva, elige un diseño apropiado entre: 'text-image' (texto izquierda, imagen derecha), 'image-text' (imagen izquierda, texto derecha), 'split-vertical' (imagen arriba, texto abajo), 'image-background' (imagen de fondo con texto), 'text-only', o 'title-only' para crear una presentación variada y profesional. Una presentación debe tener una mezcla de diseños. Para diapositivas con imágenes (text-image, image-text, split-vertical, image-background), DEBES proporcionar un prompt descriptivo para la imagen EN INGLÉS (ya que los generadores de imágenes funcionan mejor en inglés). Para diseños sin imágenes (text-only, title-only), no proporciones un prompt de imagen. TODO EL CONTENIDO DE LAS DIAPOSITIVAS (títulos y puntos) DEBE ESTAR EN ESPAÑOL.",
           },
         });
       },

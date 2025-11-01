@@ -2,15 +2,21 @@ import React, { useState } from 'react';
 import { ThemeName, SlideLayout, FontSettings } from '../types';
 import { themes, fontFamilies } from '../constants/themes';
 import ThemePreview from './ThemePreview';
+import ImageUploader from './ImageUploader';
 import { X } from 'lucide-react';
 
 interface EditPanelProps {
   currentLayout: SlideLayout;
   currentTheme: ThemeName;
   fontSettings: FontSettings;
+  currentImageUrl?: string;
   onLayoutChange: (layout: SlideLayout) => void;
   onThemeChange: (theme: ThemeName) => void;
   onFontSettingsChange: (settings: FontSettings) => void;
+  onImageChange?: (imageUrl: string) => void;
+  onRegenerateImage?: () => void;
+  onRemoveImage?: () => void;
+  isRegeneratingImage?: boolean;
   onClose: () => void;
 }
 
@@ -18,17 +24,28 @@ const EditPanel: React.FC<EditPanelProps> = ({
   currentLayout,
   currentTheme,
   fontSettings,
+  currentImageUrl,
   onLayoutChange,
   onThemeChange,
   onFontSettingsChange,
+  onImageChange,
+  onRegenerateImage,
+  onRemoveImage,
+  isRegeneratingImage,
   onClose,
 }) => {
   const [previewTheme, setPreviewTheme] = useState<ThemeName>(currentTheme);
-  const layouts: { value: SlideLayout; label: string; icon: string }[] = [
-    { value: 'text-image', label: 'Texto + Imagen', icon: '' },
-    { value: 'text-only', label: 'Solo Texto', icon: '' },
-    { value: 'title-only', label: 'Solo Título', icon: '' },
+  const layouts: { value: SlideLayout; label: string; description: string }[] = [
+    { value: 'text-image', label: 'Texto + Imagen', description: 'Texto izq., imagen der.' },
+    { value: 'image-text', label: 'Imagen + Texto', description: 'Imagen izq., texto der.' },
+    { value: 'split-vertical', label: 'División Vertical', description: 'Imagen arriba, texto abajo' },
+    { value: 'image-background', label: 'Fondo con Imagen', description: 'Imagen de fondo con texto' },
+    { value: 'text-only', label: 'Solo Texto', description: 'Sin imagen' },
+    { value: 'title-only', label: 'Solo Título', description: 'Sin contenido' },
   ];
+
+  // Determinar si el layout actual soporta imágenes
+  const layoutSupportsImages = ['text-image', 'image-text', 'split-vertical', 'image-background'].includes(currentLayout);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -48,22 +65,37 @@ const EditPanel: React.FC<EditPanelProps> = ({
           {/* Selector de Layout */}
           <div>
             <label className="block text-white font-semibold mb-3">Layout</label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {layouts.map((layout) => (
                 <button
                   key={layout.value}
                   onClick={() => onLayoutChange(layout.value)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
+                  className={`p-3 rounded-lg border-2 transition-all text-left ${
                     currentLayout === layout.value
                       ? 'border-purple-500 bg-purple-500/20'
                       : 'border-gray-700 hover:border-gray-600'
                   }`}
                 >
-                  <div className="text-white text-sm font-medium">{layout.label}</div>
+                  <div className="text-white text-sm font-medium mb-1">{layout.label}</div>
+                  <div className="text-gray-400 text-xs">{layout.description}</div>
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Editor de Imagen - Solo mostrar para layouts que soportan imágenes */}
+          {layoutSupportsImages && (
+            <div>
+              <label className="block text-white font-semibold mb-3">Imagen de la Slide</label>
+              <ImageUploader
+                currentImageUrl={currentImageUrl}
+                onImageChange={onImageChange || (() => {})}
+                onRegenerateImage={onRegenerateImage}
+                onRemoveImage={onRemoveImage}
+                isRegenerating={isRegeneratingImage}
+              />
+            </div>
+          )}
 
           {/* Selector de Tema */}
           <div>

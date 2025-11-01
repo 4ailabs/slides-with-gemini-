@@ -247,7 +247,7 @@ const Slide: React.FC<SlideProps> = ({
   switch (layout) {
     case 'title-only':
       return (
-        <div 
+        <div
           className={`${baseContainerClasses} flex-col justify-center items-center text-center p-8 lg:p-12`}
           style={containerStyle}
         >
@@ -271,9 +271,195 @@ const Slide: React.FC<SlideProps> = ({
           </div>
         </div>
       );
-      
+
+    case 'image-text':
+      // Layout inverso: Imagen izquierda, texto derecha
+      if (!slide.imageUrl) {
+        // Si no hay imagen, mostrar texto centrado
+        return (
+          <div
+            className={`${baseContainerClasses} flex-col justify-center items-center text-center p-8 lg:p-12`}
+            style={containerStyle}
+          >
+            <div className="w-full max-w-4xl px-4">
+              <div className="mb-6 lg:mb-8">
+                <Title className={titleSizeClass} maxLines={3} />
+              </div>
+              <div className="flex justify-center">
+                <div className="text-left max-w-2xl">
+                  <Content />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className={baseContainerClasses} style={containerStyle}>
+          <div className="w-1/2 h-full bg-black flex-shrink-0">
+            {isCapture ? (
+              <img
+                src={slide.imageUrl}
+                alt={slide.imagePrompt || 'Slide image'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <LazyImage
+                src={slide.imageUrl}
+                alt={slide.imagePrompt || 'Slide image'}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+          <div className="w-1/2 h-full flex flex-col p-8 lg:p-12 min-h-0 overflow-hidden" style={{ color: currentTheme.textColor }}>
+            <div className="flex-shrink-0 mb-6 lg:mb-8">
+              <Title className={titleSizeClass} maxLines={2} />
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <Content />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'split-vertical':
+      // Imagen arriba, texto abajo
+      if (!slide.imageUrl) {
+        // Si no hay imagen, mostrar solo texto centrado
+        return (
+          <div
+            className={`${baseContainerClasses} flex-col justify-center items-center text-center p-8 lg:p-12`}
+            style={containerStyle}
+          >
+            <div className="w-full max-w-4xl px-4">
+              <div className="mb-6 lg:mb-8">
+                <Title className={titleSizeClass} maxLines={3} />
+              </div>
+              <div className="flex justify-center">
+                <div className="text-left max-w-2xl">
+                  <Content />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className={`${baseContainerClasses} flex-col`} style={containerStyle}>
+          <div className="w-full h-1/2 bg-black flex-shrink-0">
+            {isCapture ? (
+              <img
+                src={slide.imageUrl}
+                alt={slide.imagePrompt || 'Slide image'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <LazyImage
+                src={slide.imageUrl}
+                alt={slide.imagePrompt || 'Slide image'}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+          <div className="w-full h-1/2 flex flex-col p-6 lg:p-8 min-h-0 overflow-hidden" style={{ color: currentTheme.textColor }}>
+            <div className="flex-shrink-0 mb-4 lg:mb-6">
+              <Title className={titleSizeClass} maxLines={2} />
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <Content />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'image-background':
+      // Imagen de fondo con texto encima
+      if (!slide.imageUrl) {
+        // Si no hay imagen, usar fondo oscuro con gradiente
+        return (
+          <div
+            className={`${baseContainerClasses} flex-col justify-center items-center text-center p-8 lg:p-12`}
+            style={{
+              ...containerStyle,
+              background: `linear-gradient(135deg, ${currentTheme.backgroundColor} 0%, ${currentTheme.borderColor} 100%)`,
+            }}
+          >
+            <div className="w-full max-w-4xl px-4 bg-black/40 backdrop-blur-sm rounded-2xl p-8">
+              <div className="mb-6 lg:mb-8">
+                <Title className={titleSizeClass} maxLines={3} />
+              </div>
+              <div className="flex justify-center">
+                <div className="text-left max-w-2xl">
+                  <Content />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className={`${baseContainerClasses} relative`} style={containerStyle}>
+          {/* Imagen de fondo */}
+          <div className="absolute inset-0 w-full h-full">
+            {isCapture ? (
+              <img
+                src={slide.imageUrl}
+                alt={slide.imagePrompt || 'Slide image'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <LazyImage
+                src={slide.imageUrl}
+                alt={slide.imagePrompt || 'Slide image'}
+                className="w-full h-full object-cover"
+              />
+            )}
+            {/* Overlay oscuro para mejor legibilidad */}
+            <div className="absolute inset-0 bg-black/50" />
+          </div>
+          {/* Contenido encima de la imagen */}
+          <div className="relative z-10 w-full h-full flex flex-col justify-center items-center text-center p-8 lg:p-12">
+            <div className="w-full max-w-4xl px-4 bg-black/40 backdrop-blur-sm rounded-2xl p-6 lg:p-8" style={{ color: currentTheme.textColor }}>
+              <div className="mb-6 lg:mb-8">
+                <Title className={titleSizeClass} maxLines={3} />
+              </div>
+              <div className="flex justify-center">
+                <div className="text-left max-w-2xl">
+                  <Content />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
     case 'text-image':
     default:
+      // Si no hay imagen, mostrar texto centrado en toda la diapositiva
+      if (!slide.imageUrl) {
+        return (
+          <div
+            className={`${baseContainerClasses} flex-col justify-center items-center text-center p-8 lg:p-12`}
+            style={containerStyle}
+          >
+            <div className="w-full max-w-4xl px-4">
+              <div className="mb-6 lg:mb-8">
+                <Title className={titleSizeClass} maxLines={3} />
+              </div>
+              <div className="flex justify-center">
+                <div className="text-left max-w-2xl">
+                  <Content />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Si hay imagen, layout normal con texto a la izquierda e imagen a la derecha
       return (
         <div className={baseContainerClasses} style={containerStyle}>
           <div className="w-1/2 h-full flex flex-col p-8 lg:p-12 min-h-0 overflow-hidden" style={{ color: currentTheme.textColor }}>
@@ -285,25 +471,19 @@ const Slide: React.FC<SlideProps> = ({
             </div>
           </div>
           <div className="w-1/2 h-full bg-black flex-shrink-0">
-            {slide.imageUrl ? (
-              isCapture ? (
-                // Usar img directa para captura (LazyImage no funciona fuera del viewport)
-                <img
-                  src={slide.imageUrl}
-                  alt={slide.imagePrompt || 'Slide image'}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <LazyImage
-                  src={slide.imageUrl}
-                  alt={slide.imagePrompt || 'Slide image'}
-                  className="w-full h-full object-cover"
-                />
-              )
+            {isCapture ? (
+              // Usar img directa para captura (LazyImage no funciona fuera del viewport)
+              <img
+                src={slide.imageUrl}
+                alt={slide.imagePrompt || 'Slide image'}
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-700">
-                  <p className="text-gray-400">Image not generated</p>
-              </div>
+              <LazyImage
+                src={slide.imageUrl}
+                alt={slide.imagePrompt || 'Slide image'}
+                className="w-full h-full object-cover"
+              />
             )}
           </div>
         </div>

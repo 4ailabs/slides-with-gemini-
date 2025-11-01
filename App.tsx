@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Slide, SlideContent } from './types';
 import { generateSlideContent, generateImageForSlide } from './services/geminiService';
+import { extractContentFromUrl } from './services/urlContentService';
 import SlideGeneratorForm from './components/SlideGeneratorForm';
 import SlideViewer from './components/SlideViewer';
 import CancelableProgress from './components/CancelableProgress';
@@ -61,6 +62,77 @@ const App: React.FC = () => {
       if (!cancelRef.current) {
         console.error('Error generating proposal:', err);
         const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido durante la generación.';
+        setError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage('');
+      setProgress(null);
+    }
+  }, []);
+
+  const handleGenerateFromUrl = useCallback(async (url: string) => {
+    if (!url.trim()) {
+      setError('Por favor, proporciona una URL válida.');
+      return;
+    }
+
+    setIsLoading(true);
+    setProposal(null);
+    setError(null);
+    cancelRef.current = false;
+    setProgress(null);
+
+    try {
+      setLoadingMessage('Extrayendo contenido de la URL...');
+      setProgress({ current: 0, total: 2 });
+
+      if (cancelRef.current) {
+        setIsLoading(false);
+        setLoadingMessage('');
+        setProgress(null);
+        return;
+      }
+
+      // Extraer contenido de la URL
+      const urlContent = await extractContentFromUrl(url);
+
+      if (cancelRef.current) {
+        setIsLoading(false);
+        setLoadingMessage('');
+        setProgress(null);
+        return;
+      }
+
+      // Usar el contenido extraído para generar la propuesta
+      setLoadingMessage('Generando propuesta de slides...');
+      setProgress({ current: 1, total: 2 });
+
+      const contentToGenerate = urlContent.title
+        ? `${urlContent.title}\n\n${urlContent.content}`
+        : urlContent.content;
+
+      const slideContents: SlideContent[] = await generateSlideContent(contentToGenerate);
+
+      if (cancelRef.current) {
+        setIsLoading(false);
+        setLoadingMessage('');
+        setProgress(null);
+        return;
+      }
+
+      if (!slideContents || slideContents.length === 0) {
+        throw new Error("No se pudo generar contenido para las slides.");
+      }
+
+      if (!cancelRef.current) {
+        setProposal(slideContents);
+      }
+
+    } catch (err) {
+      if (!cancelRef.current) {
+        console.error('Error generating from URL:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error al procesar la URL.';
         setError(errorMessage);
       }
     } finally {
@@ -187,7 +259,11 @@ const App: React.FC = () => {
         )}
 
         {slides.length === 0 && !proposal ? (
-          <SlideGeneratorForm onGenerate={handleGenerateProposal} isLoading={isLoading} />
+          <SlideGeneratorForm
+            onGenerate={handleGenerateProposal}
+            onGenerateFromUrl={handleGenerateFromUrl}
+            isLoading={isLoading}
+          />
         ) : proposal ? (
           <ProposalPreview
             proposal={proposal}

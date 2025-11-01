@@ -47,6 +47,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   const [savedPresentations, setSavedPresentations] = useState<SavedPresentation[]>([]);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [iconPickerIndex, setIconPickerIndex] = useState<number | null>(null);
+  const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const currentSlideRef = useRef<HTMLDivElement>(null);
 
 
@@ -246,6 +247,36 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
     if (slides[currentSlide]) {
       appContext.updateSlide(currentSlide, { ...slides[currentSlide], layout });
       setShowEditPanel(false);
+    }
+  }, [currentSlide, slides, appContext]);
+
+  const handleImageChange = useCallback((imageUrl: string) => {
+    if (slides[currentSlide]) {
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], imageUrl });
+    }
+  }, [currentSlide, slides, appContext]);
+
+  const handleRegenerateImage = useCallback(async () => {
+    if (!slides[currentSlide] || !slides[currentSlide].imagePrompt || !onGenerateImages) {
+      return;
+    }
+
+    setIsRegeneratingImage(true);
+    try {
+      // Generar solo la imagen de esta slide
+      await onGenerateImages([slides[currentSlide]]);
+    } catch (error) {
+      console.error('Error regenerating image:', error);
+      setDownloadMessage('Error al regenerar la imagen');
+      setTimeout(() => setDownloadMessage(''), 3000);
+    } finally {
+      setIsRegeneratingImage(false);
+    }
+  }, [currentSlide, slides, onGenerateImages]);
+
+  const handleRemoveImage = useCallback(() => {
+    if (slides[currentSlide]) {
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], imageUrl: undefined });
     }
   }, [currentSlide, slides, appContext]);
 
@@ -733,9 +764,14 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
           currentLayout={slides[currentSlide]?.layout || 'text-image'}
           currentTheme={currentTheme}
           fontSettings={fontSettings}
+          currentImageUrl={slides[currentSlide]?.imageUrl}
           onLayoutChange={handleLayoutChange}
           onThemeChange={setCurrentTheme}
           onFontSettingsChange={setFontSettings}
+          onImageChange={handleImageChange}
+          onRegenerateImage={slides[currentSlide]?.imagePrompt ? handleRegenerateImage : undefined}
+          onRemoveImage={handleRemoveImage}
+          isRegeneratingImage={isRegeneratingImage}
           onClose={() => setShowEditPanel(false)}
         />
       )}
