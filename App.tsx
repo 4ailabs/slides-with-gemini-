@@ -267,7 +267,7 @@ const App: React.FC = () => {
       </main>
 
         <footer className="w-full max-w-5xl text-center mt-8 text-gray-500 text-sm">
-          <p>Impulsado por Gemini API</p>
+          <p>Powered by Gemini API | Developed by 4 ailabs</p>
         </footer>
       </div>
     </AppProvider>
