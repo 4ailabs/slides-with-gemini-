@@ -8,6 +8,9 @@ import SlideViewer from './components/SlideViewer';
 import CancelableProgress from './components/CancelableProgress';
 import ProposalPreview from './components/ProposalPreview';
 import { AppProvider } from './context/AppContext';
+import { loadAllPresentations, SavedPresentation } from './services/storageService';
+import { loadHistory, HistorySnapshot } from './services/historyService';
+import { FolderOpen, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -16,6 +19,10 @@ const App: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+  const [showWelcomeLoadDialog, setShowWelcomeLoadDialog] = useState(false);
+  const [loadDialogTab, setLoadDialogTab] = useState<'saved' | 'history'>('saved');
+  const [savedPresentations, setSavedPresentations] = useState<SavedPresentation[]>([]);
+  const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([]);
   const cancelRef = useRef<boolean>(false);
 
   const handleGenerateProposal = useCallback(async (script: string) => {
@@ -227,6 +234,22 @@ const App: React.FC = () => {
     setError(null);
   };
 
+  const handleOpenLoadDialog = () => {
+    setSavedPresentations(loadAllPresentations());
+    setHistorySnapshots(loadHistory().sort((a, b) => b.timestamp - a.timestamp));
+    setShowWelcomeLoadDialog(true);
+  };
+
+  const handleLoadPresentation = (presentation: SavedPresentation) => {
+    setSlides(presentation.slides);
+    setShowWelcomeLoadDialog(false);
+  };
+
+  const handleLoadHistorySnapshot = (snapshot: HistorySnapshot) => {
+    setSlides(snapshot.slides);
+    setShowWelcomeLoadDialog(false);
+  };
+
   return (
     <AppProvider initialSlides={slides}>
       <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center p-4 sm:p-6 lg:p-8">
@@ -261,11 +284,20 @@ const App: React.FC = () => {
         )}
 
         {slides.length === 0 && !proposal ? (
-          <SlideGeneratorForm
-            onGenerate={handleGenerateProposal}
-            onGenerateFromUrl={handleGenerateFromUrl}
-            isLoading={isLoading}
-          />
+          <>
+            <SlideGeneratorForm
+              onGenerate={handleGenerateProposal}
+              onGenerateFromUrl={handleGenerateFromUrl}
+              isLoading={isLoading}
+            />
+            <button
+              onClick={handleOpenLoadDialog}
+              className="mt-4 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+            >
+              <FolderOpen className="w-5 h-5" />
+              Cargar Presentación o Historial
+            </button>
+          </>
         ) : proposal ? (
           <ProposalPreview
             proposal={proposal}
@@ -351,6 +383,111 @@ const App: React.FC = () => {
         <footer className="w-full max-w-5xl text-center mt-8 text-gray-500 text-sm">
           <p>Powered by Gemini API | Developed by 4 ailabs</p>
         </footer>
+
+        {/* Welcome Load Dialog */}
+        {showWelcomeLoadDialog && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-700">
+              <div className="sticky top-0 bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <FolderOpen className="w-6 h-6 text-blue-400" />
+                  Guardadas y Historial
+                </h2>
+                <button
+                  onClick={() => setShowWelcomeLoadDialog(false)}
+                  className="text-gray-400 hover:text-white p-1"
+                  title="Cerrar"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Tabs */}
+              <div className="border-b border-gray-700 flex">
+                <button
+                  onClick={() => setLoadDialogTab('saved')}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    loadDialogTab === 'saved'
+                      ? 'text-blue-400 border-b-2 border-blue-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                >
+                  Guardadas ({savedPresentations.length})
+                </button>
+                <button
+                  onClick={() => setLoadDialogTab('history')}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    loadDialogTab === 'history'
+                      ? 'text-purple-400 border-b-2 border-purple-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                >
+                  Historial ({historySnapshots.length})
+                </button>
+              </div>
+
+              <div className="p-6">
+                {loadDialogTab === 'saved' ? (
+                  savedPresentations.length === 0 ? (
+                    <p className="text-gray-400 text-center py-8">No hay presentaciones guardadas</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {savedPresentations.map((pres) => (
+                        <div
+                          key={pres.id}
+                          className="bg-gray-700 rounded-lg p-4 flex justify-between items-center"
+                        >
+                          <div>
+                            <h3 className="text-white font-semibold">{pres.name}</h3>
+                            <p className="text-gray-400 text-sm">
+                              {pres.slides.length} slides • {new Date(pres.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleLoadPresentation(pres)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
+                          >
+                            <FolderOpen className="w-4 h-4" />
+                            Cargar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  historySnapshots.length === 0 ? (
+                    <p className="text-gray-400 text-center py-8">No hay historial guardado</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {historySnapshots.map((snapshot) => (
+                        <div
+                          key={snapshot.id}
+                          className="bg-gray-700 rounded-lg p-4 flex justify-between items-center hover:bg-gray-600 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold text-sm">
+                              {new Date(snapshot.timestamp).toLocaleString()}
+                            </h3>
+                            <p className="text-gray-400 text-xs mt-1">
+                              {snapshot.slides.length} slides • {snapshot.preview || 'Sin preview'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleLoadHistorySnapshot(snapshot)}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2"
+                          >
+                            <FolderOpen className="w-4 h-4" />
+                            Cargar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppProvider>
   );
