@@ -5,31 +5,33 @@ import { generateSlideContent, generateImageForSlide } from './services/geminiSe
 import SlideGeneratorForm from './components/SlideGeneratorForm';
 import SlideViewer from './components/SlideViewer';
 import CancelableProgress from './components/CancelableProgress';
+import ProposalPreview from './components/ProposalPreview';
 import { AppProvider } from './context/AppContext';
 
 const App: React.FC = () => {
   const [slides, setSlides] = useState<Slide[]>([]);
+  const [proposal, setProposal] = useState<SlideContent[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const cancelRef = useRef<boolean>(false);
 
-  const handleGenerateSlides = useCallback(async (script: string) => {
+  const handleGenerateProposal = useCallback(async (script: string) => {
     if (!script.trim()) {
       setError('Por favor, proporciona un script o tema.');
       return;
     }
     
     setIsLoading(true);
-    setSlides([]);
+    setProposal(null);
     setError(null);
     cancelRef.current = false;
     setProgress(null);
 
     try {
-      setLoadingMessage('Paso 1/2: Diseñando layouts de slides...');
-      setProgress({ current: 0, total: 2 });
+      setLoadingMessage('Generando propuesta de slides...');
+      setProgress({ current: 0, total: 1 });
       
       if (cancelRef.current) {
         setIsLoading(false);
@@ -51,13 +53,39 @@ const App: React.FC = () => {
         throw new Error("No se pudo generar contenido para las slides. El tema podría ser demasiado corto o ambiguo.");
       }
 
-      setLoadingMessage('Paso 2/2: Generando imágenes...');
-      const generatedSlides: Slide[] = [];
-      const imageSlidesCount = slideContents.filter(s => s.layout === 'text-image' && s.imagePrompt).length;
-      const totalSteps = slideContents.length;
-      let imagesGenerated = 0;
+      if (!cancelRef.current) {
+        setProposal(slideContents);
+      }
 
-      for (let i = 0; i < slideContents.length; i++) {
+    } catch (err) {
+      if (!cancelRef.current) {
+        console.error('Error generating proposal:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido durante la generación.';
+        setError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage('');
+      setProgress(null);
+    }
+  }, []);
+
+  const handleApproveProposal = useCallback(async (editedProposal: SlideContent[]) => {
+    if (!editedProposal || editedProposal.length === 0) {
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage('Generando slides con imágenes...');
+    cancelRef.current = false;
+    
+    const slidesWithImages: Slide[] = [];
+    const imageSlidesCount = editedProposal.filter(s => s.layout === 'text-image' && s.imagePrompt).length;
+    const totalSteps = editedProposal.length;
+    let imagesGenerated = 0;
+    
+    try {
+      for (let i = 0; i < editedProposal.length; i++) {
         if (cancelRef.current) {
           setIsLoading(false);
           setLoadingMessage('');
@@ -65,12 +93,15 @@ const App: React.FC = () => {
           return;
         }
 
-        const content = slideContents[i];
+        const content = editedProposal[i];
+        if (!content || !content.title || !content.layout || !content.content) {
+          continue;
+        }
         const newSlide: Slide = { ...content };
 
         if (content.layout === 'text-image' && content.imagePrompt) {
           imagesGenerated++;
-          setLoadingMessage(`Paso 2/2: Generando imagen ${imagesGenerated} de ${imageSlidesCount}...`);
+          setLoadingMessage(`Generando imagen ${imagesGenerated} de ${imageSlidesCount}...`);
           setProgress({ current: i + 1, total: totalSteps });
           
           try {
@@ -85,17 +116,17 @@ const App: React.FC = () => {
           setProgress({ current: i + 1, total: totalSteps });
         }
 
-        generatedSlides.push(newSlide);
+        slidesWithImages.push(newSlide);
       }
 
       if (!cancelRef.current) {
-        setSlides(generatedSlides);
+        setSlides(slidesWithImages);
+        setProposal(null);
       }
-
     } catch (err) {
       if (!cancelRef.current) {
         console.error('Error generating slides:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido durante la generación.';
+        const errorMessage = err instanceof Error ? err.message : 'Error al generar las slides.';
         setError(errorMessage);
       }
     } finally {
@@ -103,6 +134,11 @@ const App: React.FC = () => {
       setLoadingMessage('');
       setProgress(null);
     }
+  }, []);
+
+  const handleRejectProposal = useCallback(() => {
+    setProposal(null);
+    setError(null);
   }, []);
 
   const handleCancel = useCallback(() => {
@@ -150,10 +186,83 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {slides.length === 0 ? (
-          <SlideGeneratorForm onGenerate={handleGenerateSlides} isLoading={isLoading} />
+        {slides.length === 0 && !proposal ? (
+          <SlideGeneratorForm onGenerate={handleGenerateProposal} isLoading={isLoading} />
+        ) : proposal ? (
+          <ProposalPreview
+            proposal={proposal}
+            onApprove={handleApproveProposal}
+            onReject={handleRejectProposal}
+            isLoading={isLoading}
+          />
         ) : (
-          <SlideViewer slides={slides} onReset={handleReset} onSlidesUpdate={setSlides} />
+          <SlideViewer 
+            slides={slides} 
+            onReset={handleReset} 
+            onSlidesUpdate={setSlides}
+            onGenerateImages={async (slidesToUpdate) => {
+              setIsLoading(true);
+              setLoadingMessage('Generando imágenes...');
+              cancelRef.current = false;
+              
+              const slidesWithImages: Slide[] = [];
+              const imageSlidesCount = slidesToUpdate.filter(s => s.layout === 'text-image' && s.imagePrompt && !s.imageUrl).length;
+              
+              if (imageSlidesCount === 0) {
+                setIsLoading(false);
+                setLoadingMessage('');
+                setProgress(null);
+                return;
+              }
+              
+              let imagesGenerated = 0;
+              
+              try {
+                for (let i = 0; i < slidesToUpdate.length; i++) {
+                  if (cancelRef.current) {
+                    setIsLoading(false);
+                    setLoadingMessage('');
+                    setProgress(null);
+                    return;
+                  }
+
+                  const slide = slidesToUpdate[i];
+                  const updatedSlide: Slide = { ...slide };
+
+                  if (slide.layout === 'text-image' && slide.imagePrompt && !slide.imageUrl) {
+                    imagesGenerated++;
+                    setLoadingMessage(`Generando imagen ${imagesGenerated} de ${imageSlidesCount}...`);
+                    setProgress({ current: imagesGenerated, total: imageSlidesCount });
+                    
+                    try {
+                      const detailedImagePrompt = `${slide.imagePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, digital illustration`;
+                      const imageUrl = await generateImageForSlide(detailedImagePrompt);
+                      updatedSlide.imageUrl = imageUrl;
+                    } catch (imageError) {
+                      console.warn(`Error generando imagen para slide "${slide.title}":`, imageError);
+                      // Continuar sin imagen si falla
+                    }
+                  }
+
+                  slidesWithImages.push(updatedSlide);
+                }
+
+                if (!cancelRef.current) {
+                  setSlides(slidesWithImages);
+                }
+              } catch (err) {
+                if (!cancelRef.current) {
+                  console.error('Error generating images:', err);
+                  const errorMessage = err instanceof Error ? err.message : 'Error al generar imágenes.';
+                  setError(errorMessage);
+                }
+              } finally {
+                setIsLoading(false);
+                setLoadingMessage('');
+                setProgress(null);
+              }
+            }}
+          />
         )}
       </main>
 

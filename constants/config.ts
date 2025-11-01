@@ -52,10 +52,21 @@ export function validateSlide(slide: unknown): boolean {
   if (!slide || typeof slide !== 'object') return false;
   const s = slide as Record<string, unknown>;
   
+  if (!Array.isArray(s.content)) return false;
+  
+  // Validar que cada item del content sea string o ContentPoint
+  const isContentValid = s.content.every((item: unknown) => {
+    if (typeof item === 'string') return true;
+    if (typeof item === 'object' && item !== null) {
+      const cp = item as Record<string, unknown>;
+      return typeof cp.text === 'string' && (cp.icon === undefined || typeof cp.icon === 'string');
+    }
+    return false;
+  });
+  
   return (
     typeof s.title === 'string' &&
-    Array.isArray(s.content) &&
-    s.content.every((item: unknown) => typeof item === 'string') &&
+    isContentValid &&
     ['text-image', 'text-only', 'title-only'].includes(s.layout as string)
   );
 }

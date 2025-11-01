@@ -67,18 +67,36 @@ function downloadBlob(blob: Blob, filename: string) {
 
 // Función exportada para convertir elemento a canvas (para uso externo)
 export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
-  if (!element || !element.offsetWidth || !element.offsetHeight) {
-    throw new Error('Elemento inválido o sin dimensiones para capturar');
+  if (!element) {
+    throw new Error('Elemento inválido para capturar');
+  }
+  
+  // Verificar dimensiones con reintentos
+  let width = element.offsetWidth;
+  let height = element.offsetHeight;
+  
+  if (!width || !height) {
+    // Esperar un poco más si no hay dimensiones
+    await new Promise(resolve => setTimeout(resolve, 200));
+    width = element.offsetWidth || APP_CONFIG.SLIDE_WIDTH;
+    height = element.offsetHeight || APP_CONFIG.SLIDE_HEIGHT;
+  }
+  
+  if (!width || !height) {
+    console.error('Elemento sin dimensiones:', {
+      element,
+      offsetWidth: element.offsetWidth,
+      offsetHeight: element.offsetHeight,
+      computedStyle: window.getComputedStyle(element),
+    });
+    throw new Error('Elemento sin dimensiones válidas para capturar');
   }
   
   // Esperar a que las imágenes se carguen
   await waitForImages(element);
   
-  // Esperar un poco más para que todo se renderice
-  await new Promise(resolve => setTimeout(resolve, APP_CONFIG.CANVAS_WAIT_TIME));
-  
-  const width = element.offsetWidth || APP_CONFIG.SLIDE_WIDTH;
-  const height = element.offsetHeight || APP_CONFIG.SLIDE_HEIGHT;
+  // Esperar un poco más para que todo se renderice (especialmente iconos SVG)
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   return await html2canvas(element, {
     backgroundColor: null, // Usar el color de fondo del elemento
@@ -90,6 +108,11 @@ export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElem
     height,
     windowWidth: width,
     windowHeight: height,
+    ignoreElements: (el) => {
+      // Ignorar elementos con opacity 0 o display none
+      const style = window.getComputedStyle(el);
+      return style.opacity === '0' || style.display === 'none' || style.visibility === 'hidden';
+    },
   });
 }
 

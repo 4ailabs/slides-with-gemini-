@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ThemeName, SlideLayout, FontSettings } from '../types';
 import { themes, fontFamilies } from '../constants/themes';
 import ThemePreview from './ThemePreview';
+import { X } from 'lucide-react';
 
 interface EditPanelProps {
   currentLayout: SlideLayout;
@@ -36,9 +37,10 @@ const EditPanel: React.FC<EditPanelProps> = ({
           <h2 className="text-2xl font-bold text-white">Personalizar Slide</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl"
+            className="text-gray-400 hover:text-white p-1"
+            title="Cerrar"
           >
-            ×
+            <X className="w-6 h-6" />
           </button>
         </div>
 

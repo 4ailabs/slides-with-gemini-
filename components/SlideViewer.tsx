@@ -16,15 +16,19 @@ import { APP_CONFIG } from '../constants/config';
 import { DragEndEvent } from '@dnd-kit/core';
 import { defaultFontSettings } from '../constants/themes';
 import { processWithConcurrencyLimit } from '../utils/parallelProcessing';
+import { RefreshCw, HelpCircle, Sparkles, Save, FolderOpen, Trash2, X } from 'lucide-react';
+import IconPicker from './IconPicker';
+import { ContentPoint } from '../types';
 
 interface SlideViewerProps {
   slides: SlideType[];
   onReset: () => void;
   onSlidesUpdate?: (slides: SlideType[]) => void;
+  onGenerateImages?: (slides: SlideType[]) => Promise<void>;
 }
 
 
-const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onReset, onSlidesUpdate }) => {
+const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onReset, onSlidesUpdate, onGenerateImages }) => {
   const appContext = useAppContext();
   const slides = appContext.slides.length > 0 ? appContext.slides : initialSlides;
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -41,6 +45,8 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [presentationName, setPresentationName] = useState('');
   const [savedPresentations, setSavedPresentations] = useState<SavedPresentation[]>([]);
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [iconPickerIndex, setIconPickerIndex] = useState<number | null>(null);
   const currentSlideRef = useRef<HTMLDivElement>(null);
 
 
@@ -146,27 +152,95 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
     }
   }, [currentSlide, slides, appContext]);
 
+  const normalizeContent = useCallback((content: string[] | ContentPoint[]): ContentPoint[] => {
+    return content.map(point => {
+      if (typeof point === 'string') {
+        return { text: point };
+      }
+      return point;
+    });
+  }, []);
+
   const handleContentChange = useCallback((index: number, newContent: string) => {
     if (slides[currentSlide]) {
-      const updatedContent = [...(slides[currentSlide].content || [])];
-      updatedContent[index] = newContent;
+      const content = slides[currentSlide].content || [];
+      const normalizedContent = normalizeContent(content);
+      const updatedContent = [...normalizedContent];
+      updatedContent[index] = { ...updatedContent[index], text: newContent };
       appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
     }
-  }, [currentSlide, slides, appContext]);
+  }, [currentSlide, slides, appContext, normalizeContent]);
+
+  const handleIconChange = useCallback((index: number, iconName: string | undefined) => {
+    if (iconName === '') {
+      setIconPickerIndex(index);
+      setShowIconPicker(true);
+      return;
+    }
+    if (slides[currentSlide]) {
+      const content = slides[currentSlide].content || [];
+      const normalizedContent = normalizeContent(content);
+      const updatedContent = [...normalizedContent];
+      updatedContent[index] = { ...updatedContent[index], icon: iconName };
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+      setShowIconPicker(false);
+      setIconPickerIndex(null);
+    }
+  }, [currentSlide, slides, appContext, normalizeContent]);
+
+  const handleIconSelect = useCallback((iconName: string) => {
+    if (iconPickerIndex !== null && slides[currentSlide]) {
+      const content = slides[currentSlide].content || [];
+      const normalizedContent = normalizeContent(content);
+      const updatedContent = [...normalizedContent];
+      updatedContent[iconPickerIndex] = { ...updatedContent[iconPickerIndex], icon: iconName };
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+    }
+    setShowIconPicker(false);
+    setIconPickerIndex(null);
+  }, [iconPickerIndex, currentSlide, slides, appContext, normalizeContent]);
 
   const handleAddContent = useCallback(() => {
     if (slides[currentSlide]) {
-      const updatedContent = [...(slides[currentSlide].content || []), 'Nuevo punto'];
-      appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+      const content = slides[currentSlide].content || [];
+      const normalizedContent = normalizeContent(content);
+      appContext.updateSlide(currentSlide, { 
+        ...slides[currentSlide], 
+        content: [...normalizedContent, { text: '' }] 
+      });
     }
-  }, [currentSlide, slides, appContext]);
+  }, [currentSlide, slides, appContext, normalizeContent]);
 
   const handleRemoveContent = useCallback((index: number) => {
     if (slides[currentSlide]) {
-      const updatedContent = (slides[currentSlide].content || []).filter((_, i) => i !== index);
+      const content = slides[currentSlide].content || [];
+      const normalizedContent = normalizeContent(content);
+      const updatedContent = normalizedContent.filter((_, i) => i !== index);
       appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
     }
-  }, [currentSlide, slides, appContext]);
+  }, [currentSlide, slides, appContext, normalizeContent]);
+
+  const handleMoveContentUp = useCallback((index: number) => {
+    if (slides[currentSlide] && index > 0) {
+      const content = slides[currentSlide].content || [];
+      const normalizedContent = normalizeContent(content);
+      const updatedContent = [...normalizedContent];
+      [updatedContent[index - 1], updatedContent[index]] = [updatedContent[index], updatedContent[index - 1]];
+      appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+    }
+  }, [currentSlide, slides, appContext, normalizeContent]);
+
+  const handleMoveContentDown = useCallback((index: number) => {
+    if (slides[currentSlide]) {
+      const content = slides[currentSlide].content || [];
+      const normalizedContent = normalizeContent(content);
+      if (index < normalizedContent.length - 1) {
+        const updatedContent = [...normalizedContent];
+        [updatedContent[index], updatedContent[index + 1]] = [updatedContent[index + 1], updatedContent[index]];
+        appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+      }
+    }
+  }, [currentSlide, slides, appContext, normalizeContent]);
 
   const handleLayoutChange = useCallback((layout: SlideLayout) => {
     if (slides[currentSlide]) {
@@ -178,7 +252,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   const handleAddSlide = useCallback(() => {
     const newSlide: SlideType = {
       title: 'Nueva Slide',
-      content: ['Nuevo punto'],
+      content: [{ text: 'Nuevo punto' }],
       layout: 'text-image',
     };
     appContext.addSlide(newSlide);
@@ -522,8 +596,11 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
               isEditable={isEditMode}
               onTitleChange={handleTitleChange}
               onContentChange={handleContentChange}
+              onIconChange={handleIconChange}
               onAddContent={handleAddContent}
               onRemoveContent={handleRemoveContent}
+              onMoveContentUp={handleMoveContentUp}
+              onMoveContentDown={handleMoveContentDown}
             />
           </div>
         ) : (
@@ -542,12 +619,43 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
           </div>
         )}
 
+        {/* Banner para generar imágenes si hay slides sin imágenes */}
+        {onGenerateImages && slides.some(s => s.layout === 'text-image' && s.imagePrompt && !s.imageUrl) && (
+          <div className="w-full mb-4 px-6 py-4 bg-gradient-to-r from-indigo-900 to-purple-900 border border-indigo-700 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="text-white font-semibold mb-1">Slides sin imágenes generadas</h3>
+              <p className="text-gray-300 text-sm">
+                Tienes {slides.filter(s => s.layout === 'text-image' && s.imagePrompt && !s.imageUrl).length} slide(s) que pueden tener imágenes generadas
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                if (onGenerateImages) {
+                  await onGenerateImages(slides);
+                  // Actualizar el contexto con las slides actualizadas
+                  if (initialSlides.length > 0) {
+                    // Esperar a que App.tsx actualice el estado
+                    setTimeout(() => {
+                      // El useEffect se encargará de sincronizar cuando initialSlides cambie
+                    }, 500);
+                  }
+                }
+              }}
+              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
+            >
+              <Sparkles className="w-5 h-5" />
+              Generar Imágenes
+            </button>
+          </div>
+        )}
+
         <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
           <button
             onClick={onReset}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
             disabled={isDownloading}
           >
+            <RefreshCw className="w-4 h-4" />
             Start Over
           </button>
           
@@ -579,10 +687,10 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
             />
             <button
               onClick={() => setShowShortcuts(true)}
-              className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors text-sm"
+              className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors text-sm flex items-center gap-2"
               title="Ver atajos de teclado (?)"
             >
-              ?
+              <HelpCircle className="w-4 h-4" />
             </button>
           </div>
 
@@ -621,7 +729,21 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
       {showSaveDialog && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full border border-gray-700 p-6">
-            <h2 className="text-2xl font-bold text-white mb-4">Guardar Presentación</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Save className="w-6 h-6 text-teal-400" />
+                Guardar Presentación
+              </h2>
+              <button
+                onClick={() => {
+                  setShowSaveDialog(false);
+                  setPresentationName('');
+                }}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <input
               type="text"
               value={presentationName}
@@ -637,14 +759,16 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
                   setShowSaveDialog(false);
                   setPresentationName('');
                 }}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-2"
               >
+                <X className="w-4 h-4" />
                 Cancelar
               </button>
               <button
                 onClick={handleSavePresentation}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg"
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg flex items-center gap-2"
               >
+                <Save className="w-4 h-4" />
                 Guardar
               </button>
             </div>
@@ -656,16 +780,31 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
         <KeyboardShortcuts onClose={() => setShowShortcuts(false)} />
       )}
 
+      {showIconPicker && (
+        <IconPicker
+          onSelect={handleIconSelect}
+          onClose={() => {
+            setShowIconPicker(false);
+            setIconPickerIndex(null);
+          }}
+          currentTheme={currentTheme}
+        />
+      )}
+
       {showLoadDialog && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-700">
             <div className="sticky top-0 bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">Presentaciones Guardadas</h2>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <FolderOpen className="w-6 h-6 text-blue-400" />
+                Presentaciones Guardadas
+              </h2>
               <button
                 onClick={() => setShowLoadDialog(false)}
-                className="text-gray-400 hover:text-white text-2xl"
+                className="text-gray-400 hover:text-white p-1"
+                title="Cerrar"
               >
-                ×
+                <X className="w-6 h-6" />
               </button>
             </div>
             <div className="p-6">
@@ -687,14 +826,16 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleLoadPresentation(pres)}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
                         >
+                          <FolderOpen className="w-4 h-4" />
                           Cargar
                         </button>
                         <button
                           onClick={() => handleDeletePresentation(pres.id)}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2"
                         >
+                          <Trash2 className="w-4 h-4" />
                           Eliminar
                         </button>
                       </div>

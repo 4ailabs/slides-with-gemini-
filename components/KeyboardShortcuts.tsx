@@ -29,12 +29,16 @@ const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({ onClose }) => {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full border border-gray-700" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-white">Atajos de Teclado</h2>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Keyboard className="w-6 h-6 text-purple-400" />
+            Atajos de Teclado
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl"
+            className="text-gray-400 hover:text-white p-1"
+            title="Cerrar"
           >
-            ×
+            <X className="w-6 h-6" />
           </button>
         </div>
         <div className="p-6">

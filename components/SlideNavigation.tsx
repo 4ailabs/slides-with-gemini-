@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SlideNavigationProps {
   currentSlide: number;
@@ -25,9 +26,10 @@ const SlideNavigation: React.FC<SlideNavigationProps> = ({
       <button
         onClick={onPrev}
         disabled={disabled}
-        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
       >
-        &larr; Prev
+        <ChevronLeft className="w-4 h-4" />
+        Prev
       </button>
       <span className="text-gray-300 font-medium">
         {currentSlide + 1} / {totalSlides}
@@ -35,9 +37,10 @@ const SlideNavigation: React.FC<SlideNavigationProps> = ({
       <button
         onClick={onNext}
         disabled={disabled}
-        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
       >
-        Next &rarr;
+        Next
+        <ChevronRight className="w-4 h-4" />
       </button>
     </div>
   );

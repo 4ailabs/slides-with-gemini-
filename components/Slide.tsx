@@ -1,8 +1,10 @@
 
 import React, { memo } from 'react';
-import { Slide as SlideType, ThemeName, FontSettings } from '../types';
+import { Slide as SlideType, ThemeName, FontSettings, ContentPoint } from '../types';
 import { themes, defaultFontSettings, fontSizes } from '../constants/themes';
 import LazyImage from './LazyImage';
+import { ArrowUp, ArrowDown, X, Plus, ImageIcon } from 'lucide-react';
+import { getIconComponent } from '../utils/iconRenderer';
 
 interface SlideProps {
   slide: SlideType;
@@ -11,8 +13,11 @@ interface SlideProps {
   isEditable?: boolean;
   onTitleChange?: (title: string) => void;
   onContentChange?: (index: number, content: string) => void;
+  onIconChange?: (index: number, iconName: string | undefined) => void;
   onAddContent?: () => void;
   onRemoveContent?: (index: number) => void;
+  onMoveContentUp?: (index: number) => void;
+  onMoveContentDown?: (index: number) => void;
 }
 
 const Slide: React.FC<SlideProps> = ({ 
@@ -22,8 +27,11 @@ const Slide: React.FC<SlideProps> = ({
   isEditable = false,
   onTitleChange,
   onContentChange,
+  onIconChange,
   onAddContent,
   onRemoveContent,
+  onMoveContentUp,
+  onMoveContentDown,
 }) => {
   // Validación defensiva
   if (!slide || !slide.title) {
@@ -70,39 +78,117 @@ const Slide: React.FC<SlideProps> = ({
   const Content = () => {
     const content = slide.content || [];
     
+    // Normalizar contenido a ContentPoint[]
+    const normalizedContent: ContentPoint[] = content.map(point => {
+      if (typeof point === 'string') {
+        return { text: point };
+      }
+      return point;
+    });
+
+    const getThemeIconColor = () => {
+      const themeColors: Record<string, string> = {
+        'purple-pink': '#c084fc',
+        'blue-cyan': '#22d3ee',
+        'green-emerald': '#34d399',
+        'orange-red': '#fb923c',
+        'dark-minimal': '#ffffff',
+      };
+      return themeColors[theme] || themeColors['purple-pink'];
+    };
+
+    const iconColor = getThemeIconColor();
+    
     if (isEditable) {
       return (
         <div className="space-y-3">
-          {content.map((point, index) => (
-            <div key={index} className="flex items-start gap-2">
-              <span className="text-gray-400 mt-1">•</span>
-              <textarea
-                value={point}
-                onChange={(e) => onContentChange?.(index, e.target.value)}
-                className={`flex-1 bg-transparent border-2 border-dashed border-white/30 rounded px-2 py-1 resize-none ${contentSizeClass} break-words`}
-                style={{
-                  color: currentTheme.textColor,
-                  fontFamily: fontSettings.fontFamily,
-                }}
-                rows={2}
-              />
-              {onRemoveContent && (
-                <button
-                  onClick={() => onRemoveContent(index)}
-                  className="text-red-400 hover:text-red-300 px-2"
-                  title="Eliminar punto"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+          {normalizedContent.map((point, index) => {
+            const IconComponent = point.icon ? getIconComponent(point.icon) : null;
+            return (
+              <div key={index} className="flex items-start gap-2 group">
+                <div className="flex flex-col gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onMoveContentUp && index > 0 && (
+                    <button
+                      onClick={() => onMoveContentUp(index)}
+                      className="text-gray-400 hover:text-white p-1"
+                      title="Mover arriba"
+                    >
+                      <ArrowUp className="w-3 h-3" />
+                    </button>
+                  )}
+                  {onMoveContentDown && index < normalizedContent.length - 1 && (
+                    <button
+                      onClick={() => onMoveContentDown(index)}
+                      className="text-gray-400 hover:text-white p-1"
+                      title="Mover abajo"
+                    >
+                      <ArrowDown className="w-3 h-3" />
+                    </button>
+                  )}
+                  {index === 0 && index === normalizedContent.length - 1 && (
+                    <div className="h-8"></div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  {IconComponent ? (
+                    <div className="flex items-center gap-1">
+                      <IconComponent style={{ fontSize: '1.25rem', color: iconColor }} />
+                      {onIconChange && (
+                        <button
+                          onClick={() => onIconChange(index, undefined)}
+                          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white text-xs"
+                          title="Quitar icono"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    onIconChange && (
+                      <button
+                        onClick={() => {
+                          // Esto se manejará en SlideViewer para abrir el picker
+                          onIconChange(index, '');
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white p-1"
+                        title="Agregar icono"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                      </button>
+                    )
+                  )}
+                </div>
+                <textarea
+                  value={point.text}
+                  onChange={(e) => onContentChange?.(index, e.target.value)}
+                  className={`flex-1 bg-transparent border-2 border-dashed border-white/30 rounded px-2 py-1 resize-none ${contentSizeClass} break-words`}
+                  style={{
+                    color: currentTheme.textColor,
+                    fontFamily: fontSettings.fontFamily,
+                  }}
+                  rows={2}
+                />
+                <div className="flex flex-col gap-1">
+                  {onRemoveContent && (
+                    <button
+                      onClick={() => onRemoveContent(index)}
+                      className="text-red-400 hover:text-red-300 p-1"
+                      title="Eliminar punto"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
           {onAddContent && (
             <button
               onClick={onAddContent}
-              className="text-blue-400 hover:text-blue-300 text-sm px-2 py-1 border border-dashed border-blue-400/50 rounded"
+              className="text-blue-400 hover:text-blue-300 text-sm px-2 py-1 border border-dashed border-blue-400/50 rounded flex items-center gap-1"
             >
-              + Agregar punto
+              <Plus className="w-4 h-4" />
+              Agregar punto
             </button>
           )}
         </div>
@@ -110,17 +196,29 @@ const Slide: React.FC<SlideProps> = ({
     }
     
     return (
-      <ul className={`space-y-3 list-disc list-inside ${contentSizeClass}`} style={{ color: currentTheme.textColor, fontFamily: fontSettings.fontFamily }}>
-        {content.map((point, index) => (
-          <li key={index} className="break-words">{point}</li>
-        ))}
+      <ul className={`space-y-3 ${contentSizeClass}`} style={{ color: currentTheme.textColor, fontFamily: fontSettings.fontFamily }}>
+        {normalizedContent.map((point, index) => {
+          const IconComponent = point.icon ? getIconComponent(point.icon) : null;
+          return (
+            <li key={index} className="flex items-start gap-3 break-words">
+              {IconComponent ? (
+                <span className="flex-shrink-0 mt-1">
+                  <IconComponent style={{ fontSize: '1.5rem', color: iconColor }} />
+                </span>
+              ) : (
+                <span className="text-gray-400 mt-1">•</span>
+              )}
+              <span className="flex-1">{point.text}</span>
+            </li>
+          );
+        })}
       </ul>
     );
   };
 
   const baseContainerClasses = `w-full aspect-video rounded-lg shadow-2xl overflow-hidden flex border`;
 
-  const containerStyle = {
+  const containerStyle: React.CSSProperties = {
     backgroundColor: currentTheme.backgroundColor,
     borderColor: currentTheme.borderColor,
     fontFamily: fontSettings.fontFamily,

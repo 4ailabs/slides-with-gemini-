@@ -41,12 +41,24 @@ export const fontFamilySchema = z.enum([
 ]);
 
 /**
+ * Schema de validación para ContentPoint (nuevo formato con iconos opcionales)
+ */
+export const contentPointSchema = z.object({
+  text: z.string().min(1, 'El texto no puede estar vacío'),
+  icon: z.string().optional(),
+});
+
+/**
  * Schema completo de validación para Slide
  * Valida que el slide tenga la estructura correcta y tipos válidos
+ * Soporta tanto el formato antiguo (array de strings) como el nuevo (array de ContentPoint)
  */
 export const slideSchema = z.object({
   title: z.string().min(1, 'El título no puede estar vacío').max(200, 'El título es demasiado largo'),
-  content: z.array(z.string().min(1, 'El contenido no puede estar vacío')).min(0).max(20, 'Demasiados puntos de contenido'),
+  content: z.union([
+    z.array(z.string().min(1, 'El contenido no puede estar vacío')).min(0).max(20, 'Demasiados puntos de contenido'),
+    z.array(contentPointSchema).min(0).max(20, 'Demasiados puntos de contenido'),
+  ]),
   layout: slideLayoutSchema,
   imageUrl: z.string().url().optional().or(z.literal('')),
   imagePrompt: z.string().optional(),

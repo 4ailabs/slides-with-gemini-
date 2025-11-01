@@ -3,6 +3,7 @@ import { Slide as SlideType } from '../types';
 import Slide from './Slide';
 import { ThemeName, FontSettings } from '../types';
 import { defaultFontSettings } from '../constants/themes';
+import { X, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PresentationModeProps {
   slides: SlideType[];
@@ -30,6 +31,16 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   }, [slides.length]);
 
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -45,17 +56,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nextSlide, prevSlide, onExit]);
-
-  const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  }, []);
+  }, [nextSlide, prevSlide, onExit, toggleFullscreen]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -72,30 +73,43 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/70 px-4 py-2 rounded-lg flex items-center gap-4 z-10">
         <button
           onClick={prevSlide}
-          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors flex items-center gap-1"
         >
-          ← Anterior
+          <ChevronLeft className="w-4 h-4" />
+          Anterior
         </button>
         <span className="text-white font-medium">
           {currentSlide + 1} / {slides.length}
         </span>
         <button
           onClick={nextSlide}
-          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors flex items-center gap-1"
         >
-          Siguiente →
+          Siguiente
+          <ChevronRight className="w-4 h-4" />
         </button>
         <button
           onClick={toggleFullscreen}
-          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors ml-4"
+          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors ml-4 flex items-center gap-1"
         >
-          {isFullscreen ? '🗗 Salir' : '🗖 Pantalla Completa'}
+          {isFullscreen ? (
+            <>
+              <Minimize2 className="w-4 h-4" />
+              Salir
+            </>
+          ) : (
+            <>
+              <Maximize2 className="w-4 h-4" />
+              Pantalla Completa
+            </>
+          )}
         </button>
         <button
           onClick={onExit}
-          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors ml-2"
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors ml-2 flex items-center gap-1"
         >
-          ✕ Salir
+          <X className="w-4 h-4" />
+          Salir
         </button>
       </div>
 

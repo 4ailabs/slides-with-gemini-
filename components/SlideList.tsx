@@ -36,14 +36,16 @@ const SortableSlideItem: React.FC<SortableSlideItemProps> = memo(({ slide, index
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`p-3 mb-2 rounded-lg border-2 cursor-move transition-all ${
+      className={`p-3 mb-2 rounded-lg border-2 transition-all ${
         isActive
           ? 'border-purple-500 bg-purple-500/20'
           : 'border-gray-700 bg-gray-800 hover:border-gray-600'
       }`}
     >
+      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-600" {...attributes} {...listeners}>
+        <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
+        <span className="text-xs text-gray-400">Arrastra para reordenar</span>
+      </div>
       <div className="flex justify-between items-start mb-2">
         <div 
           onClick={onClick}
@@ -60,9 +62,10 @@ const SortableSlideItem: React.FC<SortableSlideItemProps> = memo(({ slide, index
               e.stopPropagation();
               onDuplicate();
             }}
-            className="px-2 py-1 text-xs bg-teal-600 hover:bg-teal-700 text-white rounded transition-colors"
+            className="px-2 py-1 text-xs bg-teal-600 hover:bg-teal-700 text-white rounded transition-colors flex items-center gap-1"
             title="Duplicar"
           >
+            <Copy className="w-3 h-3" />
             Duplicar
           </button>
           <button
@@ -70,9 +73,10 @@ const SortableSlideItem: React.FC<SortableSlideItemProps> = memo(({ slide, index
               e.stopPropagation();
               onDelete();
             }}
-            className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+            className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors flex items-center gap-1"
             title="Eliminar"
           >
+            <Trash2 className="w-3 h-3" />
             Eliminar
           </button>
         </div>

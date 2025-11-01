@@ -1,9 +1,14 @@
 
 export type SlideLayout = 'text-image' | 'text-only' | 'title-only';
 
+export interface ContentPoint {
+  text: string;
+  icon?: string; // Nombre del icono de la librería (ej: "FiStar", "LuHeart")
+}
+
 export interface SlideContent {
   title: string;
-  content: string[];
+  content: string[] | ContentPoint[]; // Soporte para ambos formatos (backward compatible)
   layout: SlideLayout;
   imagePrompt?: string;
 }

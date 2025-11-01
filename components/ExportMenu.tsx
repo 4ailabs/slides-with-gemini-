@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Download, ChevronDown, FileText, Image, FileType, Presentation, Save, FolderOpen } from 'lucide-react';
 
 interface ExportMenuProps {
   onExportPDF: () => void;
@@ -49,8 +50,9 @@ const ExportMenu: React.FC<ExportMenuProps> = ({
         disabled={disabled || isDownloading}
         className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
       >
+        <Download className="w-4 h-4" />
         <span>Exportar / Más</span>
-        <span className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+        <ChevronDown className={`w-4 h-4 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -68,6 +70,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({
               disabled={isDownloading}
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              <Image className="w-4 h-4" />
               Slide Actual
             </button>
             
@@ -79,6 +82,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({
               disabled={isDownloading}
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              <Image className="w-4 h-4" />
               Todas las Imágenes
             </button>
             
@@ -90,6 +94,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({
               disabled={isDownloading}
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              <FileText className="w-4 h-4" />
               PDF
             </button>
             
@@ -101,6 +106,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({
               disabled={isDownloading}
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              <FileType className="w-4 h-4" />
               PowerPoint
             </button>
 
@@ -116,6 +122,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({
               disabled={disabled || isDownloading}
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              <Presentation className="w-4 h-4" />
               Modo Presentación
             </button>
 
@@ -131,6 +138,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({
               disabled={isDownloading}
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              <Save className="w-4 h-4" />
               Guardar Presentación
             </button>
             
@@ -142,6 +150,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({
               disabled={isDownloading}
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              <FolderOpen className="w-4 h-4" />
               Cargar Presentación
             </button>
           </div>
