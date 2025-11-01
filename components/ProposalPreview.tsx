@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import { SlideContent } from '../types';
+import { SlideContent, SlideLayout } from '../types';
 import { Edit2, Check, X, Sparkles, Image as ImageIcon } from 'lucide-react';
+
+// Helper function to check if a layout supports images
+const layoutSupportsImages = (layout: SlideLayout): boolean => {
+  return ['text-image', 'image-text', 'split-vertical', 'image-background'].includes(layout);
+};
 
 interface ProposalPreviewProps {
   proposal: SlideContent[];
@@ -160,7 +165,7 @@ const ProposalPreview: React.FC<ProposalPreviewProps> = ({
                   </ul>
                 )}
 
-                {slide.layout === 'text-image' && slide.imagePrompt && (
+                {layoutSupportsImages(slide.layout) && slide.imagePrompt && (
                   <div className="mt-3 p-3 bg-gray-800 rounded border border-gray-600">
                     <p className="text-gray-400 text-xs mb-1 font-semibold">
                       Prompt para imagen:

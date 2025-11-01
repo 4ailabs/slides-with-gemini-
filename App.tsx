@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useRef } from 'react';
-import { Slide, SlideContent, ThemeName } from './types';
+import { Slide, SlideContent, ThemeName, SlideLayout } from './types';
 import { generateSlideContent, generateImageForSlide } from './services/geminiService';
 import { extractContentFromUrl } from './services/urlContentService';
 import SlideGeneratorForm, { ImageStyle } from './components/SlideGeneratorForm';
@@ -12,6 +12,11 @@ import { loadAllPresentations, SavedPresentation } from './services/storageServi
 import { loadHistory, HistorySnapshot } from './services/historyService';
 import { FolderOpen, X } from 'lucide-react';
 import { themes } from './constants/themes';
+
+// Helper function to check if a layout supports images
+const layoutSupportsImages = (layout: SlideLayout): boolean => {
+  return ['text-image', 'image-text', 'split-vertical', 'image-background'].includes(layout);
+};
 
 const App: React.FC = () => {
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -244,7 +249,7 @@ const App: React.FC = () => {
     cancelRef.current = false;
     
     const slidesWithImages: Slide[] = [];
-    const imageSlidesCount = editedProposal.filter(s => s.layout === 'text-image' && s.imagePrompt).length;
+    const imageSlidesCount = editedProposal.filter(s => layoutSupportsImages(s.layout) && s.imagePrompt).length;
     const totalSteps = editedProposal.length;
     let imagesGenerated = 0;
     
@@ -263,7 +268,7 @@ const App: React.FC = () => {
         }
         const newSlide: Slide = { ...content };
 
-        if (content.layout === 'text-image' && content.imagePrompt) {
+        if (layoutSupportsImages(content.layout) && content.imagePrompt) {
           imagesGenerated++;
           setLoadingMessage(`Generando imagen ${imagesGenerated} de ${imageSlidesCount}...`);
           setProgress({ current: i + 1, total: totalSteps });
@@ -400,7 +405,7 @@ const App: React.FC = () => {
               cancelRef.current = false;
               
               const slidesWithImages: Slide[] = [];
-              const imageSlidesCount = slidesToUpdate.filter(s => s.layout === 'text-image' && s.imagePrompt && !s.imageUrl).length;
+              const imageSlidesCount = slidesToUpdate.filter(s => layoutSupportsImages(s.layout) && s.imagePrompt && !s.imageUrl).length;
               
               if (imageSlidesCount === 0) {
                 setIsLoading(false);
@@ -427,7 +432,7 @@ const App: React.FC = () => {
                   
                   const updatedSlide: Slide = { ...slide };
 
-                  if (slide.layout === 'text-image' && slide.imagePrompt && !slide.imageUrl) {
+                  if (layoutSupportsImages(slide.layout) && slide.imagePrompt && !slide.imageUrl) {
                     imagesGenerated++;
                     setLoadingMessage(`Generando imagen ${imagesGenerated} de ${imageSlidesCount}...`);
                     setProgress({ current: imagesGenerated, total: imageSlidesCount });

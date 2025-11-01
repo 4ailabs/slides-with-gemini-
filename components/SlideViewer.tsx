@@ -22,6 +22,11 @@ import { RefreshCw, HelpCircle, Sparkles, Save, FolderOpen, Trash2, X } from 'lu
 import IconPicker from './IconPicker';
 import { ContentPoint } from '../types';
 
+// Helper function to check if a layout supports images
+const layoutSupportsImages = (layout: SlideLayout): boolean => {
+  return ['text-image', 'image-text', 'split-vertical', 'image-background'].includes(layout);
+};
+
 interface SlideViewerProps {
   slides: SlideType[];
   onReset: () => void;
@@ -751,12 +756,12 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
         )}
 
         {/* Banner para generar imágenes si hay slides sin imágenes */}
-        {onGenerateImages && slides.some(s => s.layout === 'text-image' && s.imagePrompt && !s.imageUrl) && (
+        {onGenerateImages && slides.some(s => layoutSupportsImages(s.layout) && s.imagePrompt && !s.imageUrl) && (
           <div className="w-full mb-4 px-6 py-4 bg-gradient-to-r from-indigo-900 to-purple-900 border border-indigo-700 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex-1">
               <h3 className="text-white font-semibold mb-1">Slides sin imágenes generadas</h3>
               <p className="text-gray-300 text-sm">
-                Tienes {slides.filter(s => s.layout === 'text-image' && s.imagePrompt && !s.imageUrl).length} slide(s) que pueden tener imágenes generadas
+                Tienes {slides.filter(s => layoutSupportsImages(s.layout) && s.imagePrompt && !s.imageUrl).length} slide(s) que pueden tener imágenes generadas
               </p>
             </div>
             <button
