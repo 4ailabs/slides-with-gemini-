@@ -4,6 +4,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { memo } from 'react';
+import { GripVertical, Copy, Trash2 } from 'lucide-react';
 
 interface SlideListProps {
   slides: SlideType[];
