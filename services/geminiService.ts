@@ -199,3 +199,69 @@ export async function generateImageForSlide(prompt: string): Promise<string> {
     return `https://picsum.photos/seed/${encodeURIComponent(prompt.substring(0, 50))}/1280/720`;
   }
 }
+
+/**
+ * Mejora un texto usando IA
+ * @param originalText - Texto original a mejorar
+ * @param options - Opciones de mejora
+ * @returns Texto mejorado
+ */
+export async function improveTextWithAI(
+  originalText: string,
+  options: {
+    style?: 'formal' | 'casual' | 'persuasive' | 'concise' | 'detailed';
+    length?: 'shorter' | 'same' | 'longer';
+  } = {}
+): Promise<string> {
+  if (!originalText || !originalText.trim()) {
+    throw new Error('El texto no puede estar vacío');
+  }
+
+  // Rate limiting
+  if (!checkRateLimit('improve-text')) {
+    const remaining = getRemainingRequests('improve-text');
+    throw new Error(`Límite de solicitudes alcanzado. Solicitudes restantes: ${remaining}`);
+  }
+
+  try {
+    recordApiRequest('improve-text');
+
+    const stylePrompt = options.style === 'formal' ? 'usando un tono formal y profesional'
+      : options.style === 'casual' ? 'usando un tono casual y amigable'
+      : options.style === 'persuasive' ? 'usando un tono persuasivo y convincente'
+      : options.style === 'concise' ? 'siendo más conciso y directo'
+      : options.style === 'detailed' ? 'siendo más detallado y completo'
+      : 'manteniendo el tono original';
+
+    const lengthPrompt = options.length === 'shorter' ? 'acortándolo'
+      : options.length === 'longer' ? 'ampliándolo'
+      : 'manteniendo similar longitud';
+
+    const prompt = `Mejora el siguiente texto ${stylePrompt} y ${lengthPrompt}. Solo devuelve el texto mejorado, sin explicaciones adicionales. Mantén el mismo significado y contexto. Texto: "${originalText}"`;
+
+    const response = await retryWithBackoff(
+      async () => {
+        return await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+        });
+      },
+      {
+        maxRetries: 2,
+        initialDelay: 1000,
+        onRetry: (error, attempt) => {
+          console.warn(`Reintentando mejora de texto (intento ${attempt}):`, error.message);
+        },
+      }
+    );
+
+    if (!response || !response.text) {
+      throw new Error('La respuesta de la API está vacía');
+    }
+
+    return response.text.trim();
+  } catch (error) {
+    console.error('Error improving text:', error);
+    throw error;
+  }
+}

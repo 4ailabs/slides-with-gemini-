@@ -12,6 +12,7 @@ import { useAppContext } from '../context/AppContext';
 import { downloadSlidesAsPDF, downloadSlidesAsImages, downloadCurrentSlideAsImage, exportToPowerPoint, htmlToCanvas } from '../services/downloadService';
 import { savePresentation, loadAllPresentations, SavedPresentation, deletePresentation } from '../services/storageService';
 import { loadHistory, HistorySnapshot, clearHistory, getHistorySize } from '../services/historyService';
+import { improveTextWithAI } from '../services/geminiService';
 import { renderSlideForCapture } from '../utils/slideRenderer';
 import { APP_CONFIG } from '../constants/config';
 import { DragEndEvent } from '@dnd-kit/core';
@@ -248,6 +249,42 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
         [updatedContent[index], updatedContent[index + 1]] = [updatedContent[index + 1], updatedContent[index]];
         appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
       }
+    }
+  }, [currentSlide, slides, appContext, normalizeContent]);
+
+  const handleImproveTitle = useCallback(async (originalTitle: string) => {
+    try {
+      const improved = await improveTextWithAI(originalTitle);
+      if (slides[currentSlide]) {
+        appContext.updateSlide(currentSlide, { ...slides[currentSlide], title: improved });
+      }
+      setDownloadMessage('Título mejorado con IA');
+      setTimeout(() => setDownloadMessage(''), 2000);
+    } catch (error) {
+      console.error('Error improving title:', error);
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      setDownloadMessage(`Error: ${message}`);
+      setTimeout(() => setDownloadMessage(''), 3000);
+    }
+  }, [currentSlide, slides, appContext]);
+
+  const handleImproveContent = useCallback(async (index: number, originalContent: string) => {
+    try {
+      const improved = await improveTextWithAI(originalContent);
+      if (slides[currentSlide]) {
+        const content = slides[currentSlide].content || [];
+        const normalizedContent = normalizeContent(content);
+        const updatedContent = [...normalizedContent];
+        updatedContent[index] = { ...updatedContent[index], text: improved };
+        appContext.updateSlide(currentSlide, { ...slides[currentSlide], content: updatedContent });
+      }
+      setDownloadMessage('Contenido mejorado con IA');
+      setTimeout(() => setDownloadMessage(''), 2000);
+    } catch (error) {
+      console.error('Error improving content:', error);
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      setDownloadMessage(`Error: ${message}`);
+      setTimeout(() => setDownloadMessage(''), 3000);
     }
   }, [currentSlide, slides, appContext, normalizeContent]);
 
@@ -692,6 +729,8 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
               onRemoveContent={handleRemoveContent}
               onMoveContentUp={handleMoveContentUp}
               onMoveContentDown={handleMoveContentDown}
+              onImproveTitle={handleImproveTitle}
+              onImproveContent={handleImproveContent}
             />
           </div>
         ) : (

@@ -3,7 +3,7 @@ import React, { memo } from 'react';
 import { Slide as SlideType, ThemeName, FontSettings, ContentPoint } from '../types';
 import { themes, defaultFontSettings, fontSizes } from '../constants/themes';
 import LazyImage from './LazyImage';
-import { ArrowUp, ArrowDown, X, Plus, ImageIcon } from 'lucide-react';
+import { ArrowUp, ArrowDown, X, Plus, ImageIcon, Sparkles } from 'lucide-react';
 import { getIconComponent } from '../utils/iconRenderer';
 
 interface SlideProps {
@@ -19,6 +19,8 @@ interface SlideProps {
   onRemoveContent?: (index: number) => void;
   onMoveContentUp?: (index: number) => void;
   onMoveContentDown?: (index: number) => void;
+  onImproveTitle?: (title: string) => Promise<void>;
+  onImproveContent?: (index: number, content: string) => Promise<void>;
 }
 
 const Slide: React.FC<SlideProps> = ({
@@ -34,6 +36,8 @@ const Slide: React.FC<SlideProps> = ({
   onRemoveContent,
   onMoveContentUp,
   onMoveContentDown,
+  onImproveTitle,
+  onImproveContent,
 }) => {
   // Validación defensiva
   if (!slide || !slide.title) {
@@ -48,17 +52,28 @@ const Slide: React.FC<SlideProps> = ({
   const Title = ({ className = '', maxLines = 2 }: { className?: string; maxLines?: number }) => {
     if (isEditable && onTitleChange) {
       return (
-        <input
-          type="text"
-          value={slide.title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          className="font-bold bg-transparent border-2 border-dashed border-white/30 rounded px-2 py-1 w-full break-words"
-          style={{
-            color: currentTheme.titleGradientFrom,
-            fontSize: 'inherit',
-            fontFamily: fontSettings.fontFamily,
-          }}
-        />
+        <div className="relative group">
+          <input
+            type="text"
+            value={slide.title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            className="font-bold bg-transparent border-2 border-dashed border-white/30 rounded px-2 py-1 w-full break-words"
+            style={{
+              color: currentTheme.titleGradientFrom,
+              fontSize: 'inherit',
+              fontFamily: fontSettings.fontFamily,
+            }}
+          />
+          {onImproveTitle && (
+            <button
+              onClick={() => onImproveTitle(slide.title)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-purple-600 hover:bg-purple-700 text-white p-1.5 rounded transition-opacity"
+              title="Mejorar con IA"
+            >
+              <Sparkles className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       );
     }
 
@@ -189,6 +204,15 @@ const Slide: React.FC<SlideProps> = ({
                   rows={2}
                 />
                 <div className="flex flex-col gap-1">
+                  {onImproveContent && point.text && (
+                    <button
+                      onClick={() => onImproveContent(index, point.text)}
+                      className="opacity-0 group-hover:opacity-100 bg-purple-600 hover:bg-purple-700 text-white p-1 rounded transition-opacity"
+                      title="Mejorar con IA"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                    </button>
+                  )}
                   {onRemoveContent && (
                     <button
                       onClick={() => onRemoveContent(index)}
