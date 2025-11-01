@@ -27,10 +27,11 @@ interface SlideViewerProps {
   onReset: () => void;
   onSlidesUpdate?: (slides: SlideType[]) => void;
   onGenerateImages?: (slides: SlideType[]) => Promise<void>;
+  onThemeChange?: (theme: ThemeName) => void;
 }
 
 
-const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onReset, onSlidesUpdate, onGenerateImages }) => {
+const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onReset, onSlidesUpdate, onGenerateImages, onThemeChange }) => {
   const appContext = useAppContext();
   const slides = appContext.slides.length > 0 ? appContext.slides : initialSlides;
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -841,7 +842,10 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
           fontSettings={fontSettings}
           currentImageUrl={slides[currentSlide]?.imageUrl}
           onLayoutChange={handleLayoutChange}
-          onThemeChange={setCurrentTheme}
+          onThemeChange={(theme) => {
+            setCurrentTheme(theme);
+            onThemeChange?.(theme);
+          }}
           onFontSettingsChange={setFontSettings}
           onImageChange={handleImageChange}
           onRegenerateImage={slides[currentSlide]?.imagePrompt ? handleRegenerateImage : undefined}

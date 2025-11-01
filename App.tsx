@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useRef } from 'react';
-import { Slide, SlideContent } from './types';
+import { Slide, SlideContent, ThemeName } from './types';
 import { generateSlideContent, generateImageForSlide } from './services/geminiService';
 import { extractContentFromUrl } from './services/urlContentService';
 import SlideGeneratorForm, { ImageStyle } from './components/SlideGeneratorForm';
@@ -11,6 +11,7 @@ import { AppProvider } from './context/AppContext';
 import { loadAllPresentations, SavedPresentation } from './services/storageService';
 import { loadHistory, HistorySnapshot } from './services/historyService';
 import { FolderOpen, X } from 'lucide-react';
+import { themes } from './constants/themes';
 
 const App: React.FC = () => {
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -24,6 +25,7 @@ const App: React.FC = () => {
   const [savedPresentations, setSavedPresentations] = useState<SavedPresentation[]>([]);
   const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([]);
   const [currentImageStyle, setCurrentImageStyle] = useState<ImageStyle>('realistic');
+  const [currentTheme, setCurrentTheme] = useState<ThemeName>('purple-pink');
   const cancelRef = useRef<boolean>(false);
 
   // Map de estilos a descripciones para prompts
@@ -41,9 +43,67 @@ const App: React.FC = () => {
     return styleMap[style] || styleMap['realistic'];
   };
 
-  const buildImagePrompt = (basePrompt: string): string => {
+  // Map de temas a paletas de colores para prompts
+  const getThemeColorPrompt = (themeName: ThemeName): string => {
+    const theme = themes[themeName];
+    if (!theme) return '';
+    
+    const colorNames: Record<string, string> = {
+      // purple-pink
+      '#c084fc': 'purple',
+      '#ec4899': 'pink',
+      // blue-cyan
+      '#93c5fd': 'blue',
+      '#06b6d4': 'cyan',
+      // green-emerald
+      '#86efac': 'green',
+      '#10b981': 'emerald',
+      // orange-red
+      '#fdba74': 'orange',
+      '#ef4444': 'red',
+      // gray
+      '#e5e7eb': 'light gray',
+      '#9ca3af': 'gray',
+      '#1f2937': 'dark gray',
+      // ocean-blue
+      '#60a5fa': 'ocean blue',
+      '#4f46e5': 'indigo',
+      // sunset-orange
+      '#facc15': 'yellow',
+      '#ea580c': 'orange',
+      // forest-green
+      '#34d399': 'emerald',
+      '#0d9488': 'teal',
+      // royal-purple
+      '#a78bfa': 'violet',
+      '#9333ea': 'purple',
+      // modern-tech
+      '#22d3ee': 'cyan',
+      '#2563eb': 'blue',
+      // elegant-rose
+      '#fb7185': 'rose',
+      '#db2777': 'pink',
+      // corporate-blue
+      '#3b82f6': 'corporate blue',
+      '#334155': 'slate gray',
+      // vibrant-magenta
+      '#e879f9': 'magenta',
+      // nature-lime
+      '#a3e635': 'lime',
+      '#16a34a': 'green',
+    };
+    
+    const fromColor = colorNames[theme.titleGradientFrom] || 'primary';
+    const toColor = colorNames[theme.titleGradientTo] || 'secondary';
+    
+    return `${fromColor} and ${toColor} color palette, harmonious color scheme`;
+  };
+
+  const buildImagePrompt = (basePrompt: string, theme?: ThemeName): string => {
     const stylePrompt = getStylePrompt(currentImageStyle);
-    return `${basePrompt}, ${stylePrompt}, professional presentation slide image, clean background, 16:9 aspect ratio, no text, no words, no letters`;
+    const themePrompt = theme ? getThemeColorPrompt(theme) : '';
+    const combinedPrompts = [basePrompt, stylePrompt, themePrompt].filter(Boolean).join(', ');
+    return `${combinedPrompts}, professional presentation slide image, clean background, 16:9 aspect ratio, no text, no words, no letters`;
   };
 
   const handleGenerateProposal = useCallback(async (script: string, imageStyle?: ImageStyle) => {
@@ -209,7 +269,7 @@ const App: React.FC = () => {
           setProgress({ current: i + 1, total: totalSteps });
           
           try {
-            const detailedImagePrompt = buildImagePrompt(content.imagePrompt);
+            const detailedImagePrompt = buildImagePrompt(content.imagePrompt, currentTheme);
             const imageUrl = await generateImageForSlide(detailedImagePrompt);
             newSlide.imageUrl = imageUrl;
           } catch (imageError) {
@@ -333,6 +393,7 @@ const App: React.FC = () => {
             slides={slides} 
             onReset={handleReset} 
             onSlidesUpdate={setSlides}
+            onThemeChange={setCurrentTheme}
             onGenerateImages={async (slidesToUpdate) => {
               setIsLoading(true);
               setLoadingMessage('Generando imágenes...');
@@ -372,7 +433,7 @@ const App: React.FC = () => {
                     setProgress({ current: imagesGenerated, total: imageSlidesCount });
                     
                     try {
-                      const detailedImagePrompt = buildImagePrompt(slide.imagePrompt);
+                      const detailedImagePrompt = buildImagePrompt(slide.imagePrompt, currentTheme);
                       const imageUrl = await generateImageForSlide(detailedImagePrompt);
                       updatedSlide.imageUrl = imageUrl;
                     } catch (imageError) {
