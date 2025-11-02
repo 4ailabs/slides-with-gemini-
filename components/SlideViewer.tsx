@@ -21,6 +21,7 @@ import { processSequentially } from '../utils/parallelProcessing';
 import { RefreshCw, HelpCircle, Sparkles, Save, FolderOpen, Trash2, X } from 'lucide-react';
 import IconPicker from './IconPicker';
 import { ContentPoint } from '../types';
+import CancelableProgress from './CancelableProgress';
 
 // Helper function to check if a layout supports images
 const layoutSupportsImages = (layout: SlideLayout): boolean => {
@@ -60,6 +61,8 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
   const [iconPickerIndex, setIconPickerIndex] = useState<number | null>(null);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const currentSlideRef = useRef<HTMLDivElement>(null);
+  const cancelExportRef = useRef(false);
+  const [exportProgress, setExportProgress] = useState<{ current: number; total: number } | null>(null);
 
 
   // Sincronizar slides cuando cambian las initialSlides
@@ -559,7 +562,9 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
 
   const handleExportPowerPoint = async () => {
     setIsDownloading(true);
-    setDownloadMessage(APP_CONFIG.MESSAGES.GENERATING_PPTX);
+    setDownloadMessage('');
+    setExportProgress({ current: 0, total: slides.length });
+    cancelExportRef.current = false;
 
     let container: HTMLElement | null = null;
 
@@ -581,7 +586,12 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
       const slideCanvases = await processSequentially<SlideType, HTMLCanvasElement>(
         slides,
         async (slide: SlideType, index: number) => {
-          setDownloadMessage(`${APP_CONFIG.MESSAGES.GENERATING_PPTX} (${index + 1}/${slides.length})`);
+          // Verificar si se canceló
+          if (cancelExportRef.current) {
+            throw new Error('Exportación cancelada');
+          }
+
+          setExportProgress({ current: index + 1, total: slides.length });
 
           const slideDiv = await renderSlideForCapture(
             slide,
@@ -591,6 +601,15 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
             width,
             height
           );
+
+          // Verificar si se canceló después del renderizado
+          if (cancelExportRef.current) {
+            const root = (slideDiv as any).__slideRoot;
+            if (root && typeof root.unmount === 'function') {
+              root.unmount();
+            }
+            throw new Error('Exportación cancelada');
+          }
 
           const canvas = await htmlToCanvas(slideDiv);
 
@@ -607,25 +626,38 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
         },
         {
           onProgress: (completed: number, total: number) => {
-            setDownloadMessage(`${APP_CONFIG.MESSAGES.GENERATING_PPTX} (${completed}/${total})`);
+            setExportProgress({ current: completed, total });
           }
         }
       );
+
+      if (cancelExportRef.current) {
+        throw new Error('Exportación cancelada');
+      }
 
       await exportToPowerPoint(slides, slideCanvases);
       setDownloadMessage(APP_CONFIG.MESSAGES.SUCCESS_PPTX);
       setTimeout(() => setDownloadMessage(''), 2000);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error desconocido';
-      console.error('Error exporting PowerPoint:', error);
-      setDownloadMessage(`${APP_CONFIG.MESSAGES.ERROR_PPTX} ${message}`);
+      if (cancelExportRef.current) {
+        setDownloadMessage('Exportación cancelada');
+      } else {
+        const message = error instanceof Error ? error.message : 'Error desconocido';
+        console.error('Error exporting PowerPoint:', error);
+        setDownloadMessage(`${APP_CONFIG.MESSAGES.ERROR_PPTX} ${message}`);
+      }
       setTimeout(() => setDownloadMessage(''), 4000);
     } finally {
       if (container && container.parentNode) {
         document.body.removeChild(container);
       }
       setIsDownloading(false);
+      setExportProgress(null);
     }
+  };
+
+  const handleCancelExport = () => {
+    cancelExportRef.current = true;
   };
 
   const handleSavePresentation = () => {
@@ -1071,6 +1103,15 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides: initialSlides, onRese
             </div>
           </div>
         </div>
+      )}
+
+      {isDownloading && exportProgress && (
+        <CancelableProgress
+          message={APP_CONFIG.MESSAGES.GENERATING_PPTX}
+          progress={exportProgress.current}
+          total={exportProgress.total}
+          onCancel={handleCancelExport}
+        />
       )}
     </div>
   );

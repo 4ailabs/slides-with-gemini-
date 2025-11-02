@@ -96,7 +96,7 @@ export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElem
   await waitForImages(element);
   
   // Esperar un poco más para que todo se renderice (especialmente iconos SVG)
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 200));
   
   // Asegurarnos de que el elemento esté "visible" para html2canvas
   // html2canvas necesita que el elemento tenga visibility: visible (no hidden)
@@ -118,20 +118,12 @@ export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElem
     // Esperar otro frame adicional antes de capturar
     await new Promise(resolve => requestAnimationFrame(resolve));
 
-    console.log('Starting html2canvas capture for element:', {
-      tagName: element.tagName,
-      width,
-      height,
-      hasDataAttribute: element.hasAttribute('data-slide-capture'),
-      children: element.children.length
-    });
-
     const canvas = await html2canvas(element, {
       backgroundColor: null, // Usar el color de fondo del elemento
       scale: APP_CONFIG.CAPTURE_SCALE,
       useCORS: true,
       allowTaint: true, // Permitir imágenes cross-origin
-      logging: true, // Activar logging temporalmente para debug
+      logging: false, // Desactivar logging en producción
       width,
       height,
       windowWidth: width,
@@ -145,8 +137,6 @@ export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElem
       scrollY: 0,
       onclone: (clonedDoc) => {
         try {
-          console.log('html2canvas onclone callback - Preparing cloned document');
-
           // Asegurar que el documento clonado esté completamente renderizado
           const wrapper = clonedDoc.querySelector('[data-slide-capture]');
           if (!wrapper) {
@@ -155,7 +145,6 @@ export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElem
           }
 
           if (wrapper instanceof HTMLElement) {
-            console.log('Configuring cloned wrapper element');
             wrapper.style.position = 'relative';
             wrapper.style.visibility = 'visible';
             wrapper.style.display = 'flex';
@@ -165,8 +154,6 @@ export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElem
 
             // Asegurar que todos los hijos estén visibles
             const allElements = wrapper.querySelectorAll('*');
-            console.log(`Processing ${allElements.length} child elements in cloned document`);
-
             allElements.forEach((el) => {
               if (el instanceof HTMLElement) {
                 if (el.style.visibility === 'hidden') {
@@ -177,19 +164,12 @@ export async function htmlToCanvas(element: HTMLElement): Promise<HTMLCanvasElem
                 }
               }
             });
-
-            console.log('Cloned document prepared successfully');
           }
         } catch (error) {
           console.error('Error in onclone callback:', error);
           throw error;
         }
       },
-    });
-
-    console.log('html2canvas capture completed successfully, canvas dimensions:', {
-      width: canvas.width,
-      height: canvas.height
     });
 
     return canvas;

@@ -89,14 +89,14 @@ export async function renderSlideForCapture(
   });
 
   // Esperar renderizado completo con intentos adicionales
-  // Aumentamos el tiempo para que los iconos SVG se rendericen
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  // Esperar para que los iconos SVG se rendericen
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   // Forzar múltiples reflows para asegurar renderizado completo de SVGs
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 3; i++) {
     wrapper.offsetHeight; // Forzar reflow del wrapper
     slideDiv.offsetHeight; // Forzar reflow del slideDiv
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   // Guardar referencia al root para limpieza posterior
